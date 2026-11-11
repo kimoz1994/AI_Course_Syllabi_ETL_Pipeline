@@ -594,11 +594,11 @@ def run_pipeline(cfg, up_to):
 
 ---
 
-## v1 PDF intake (in progress) — `schema.py`, `extraction.py`, `pdf_intake.py`
+## v1 PDF intake — `schema.py`, `extraction.py`, `pdf_intake.py`, `validation.py`
 
-The PDF-first revision (spec: issue #1) adds these modules, currently exercised
-by `tests/test_extraction.py` (plain-dict seam tests) and
-`tests/test_pdf_pipeline.py` (fixture PDFs):
+The PDF-first revision (spec: issue #1) adds these modules, exercised by
+`tests/test_extraction.py` (plain-dict seam tests), `tests/test_validation.py`
+(validation-boundary tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
 
 - **`schema_contract.yaml`** (repo root, next to `config.yaml`) — the
   schema contract's *configurable* half: the three closed vocabularies
@@ -633,13 +633,24 @@ by `tests/test_extraction.py` (plain-dict seam tests) and
   all-null record plus a warning) → extraction backend → **normalize +
   validate at the seam** (structural violations raise; unmappable vocabulary
   values stay in the record and are logged under `issues` in the extraction
-  log, where the validation ticket fails the run) → a stub file-count gate
-  (N distinct files → N records) → outputs: `output/syllabi_dataset.csv`
+  log) → the validation stage below → outputs: `output/syllabi_dataset.csv`
   (real nulls as empty cells, list fields as JSON arrays) and
   `output/extraction_log.json` (per-file status, hash, dropped duplicates,
-  warnings, issues). The CLI runs this flow whenever the config `input` is a
-  directory; the CSV flow below stays for the legacy dataset until its
-  retirement ticket.
+  warnings, issues, normalizations). The CLI runs this flow whenever the
+  config `input` is a directory; the CSV flow below stays for the legacy
+  dataset until its retirement ticket.
+- **`validation.py`** — the v1 *normalize-then-assert* stage. Normalization:
+  `year` values become ISO dates where parseable (`2023` → `2023-01-01`,
+  matching the manual export's `YYYY-01-01` convention; `September 2023` →
+  `2023-09-01`; US `M/D/YYYY` and `Month D, YYYY` supported; seasons and
+  academic-year ranges stay verbatim) — every action is logged per record
+  under `normalizations`. Assertion runs `validate_record()` over the exact
+  records about to be written, so a PASS certifies the file on disk.
+  Severity model: the file-count gate, structural contract violations and
+  unmappable vocabulary values **fail the run** (exit 1; the message names
+  file, field and value, and the dataset is still written for audit);
+  completeness (an entirely empty form field), scan/failed records and
+  sentinel-like backstop values only **warn** (exit 0).
 
 ## 12. The tests — how you *know* it works
 
@@ -654,6 +665,14 @@ syllabus that must classify as *Other*.
 | `test_classify.py` | `"research methods"` does **not** trigger `search` (lookarounds); plurals match; `a*` matches; each AIMA class maps correctly; JSON extracted from fences *and* prose; `"5. Machine Learning"` coerces to 5; **LLM failures fall back to rule per-item, and raise only when fallback is off** |
 | `test_validate.py` | healthy fixture → PASS; row loss → FAIL; missing column → FAIL; invented class → FAIL; year 1850 → WARN + anomaly; duplicate record → WARN |
 | `test_pipeline.py` | the real CLI, end to end: fixture → all outputs exist → quality not FAIL → **every figure passes 19/19** → report links figures |
+
+And the v1 PDF-flow tests:
+
+| File | Proves |
+|---|---|
+| `test_extraction.py` | the backend seam + schema contract: alias mapping, real nulls, list cleanup, wrong types rejected, unmappable values surfaced |
+| `test_validation.py` | normalize-then-assert: fail model (file-count gate, unmappable values, structural violations), warn model (completeness, scans, sentinels), ISO-date normalization + audit log |
+| `test_pdf_pipeline.py` | fixture PDFs end to end: dedup, lexicographic ids, all-null scan record, exit codes, the on-disk dataset + extraction log |
 
 Testing concept: the `mock` backend makes LLM behavior **deterministic in
 tests** — no server, no network, no flakiness. This is why `mock` exists at all.

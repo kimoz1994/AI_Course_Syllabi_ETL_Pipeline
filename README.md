@@ -108,8 +108,8 @@ python -m ai_syllabi_etl run        # PDF flow runs whenever `input` is a direct
 ```
 
 Files with no text layer (scans) produce an all-null record plus a warning
-(no OCR in v1). Normalize-then-assert validation, the extraction cache and
-the real LLM backend land in their own tickets.
+(no OCR in v1). The extraction cache and the real LLM backend land in their
+own tickets.
 
 **Schema contract (T2).** Every record the extraction backend emits is
 normalized and validated against the 14-field form schema before it reaches
@@ -128,8 +128,29 @@ the dataset (`schema.py`):
   `Other/not clear` passes through as a distinct label;
 - a vocabulary value with no alias that is not canonical (and isn't
   `Other/not clear`) is **unmappable**: it stays in the record verbatim and
-  is listed under `issues` in `output/extraction_log.json`, where the
-  validation stage (next ticket) fails the run on it.
+  is listed under `issues` in `output/extraction_log.json`.
+
+**Validation — normalize-then-assert (T3).** At the validation boundary
+(`validation.py`) the pipeline normalizes the dataset and then asserts the
+*exact records about to be written*, so a PASS certifies the file on disk:
+
+- **Normalization rules** — `year` values become ISO dates where parseable
+  (`2023` → `2023-01-01`, matching the manual export's convention;
+  `September 2023` → `2023-09-01`; `9/1/2023` (US) and `Month D, YYYY`
+  supported; seasons like `Fall 2024` and academic-year ranges like
+  `2024/2025` stay verbatim — normalization never invents data). Empty→null
+  and synonym→canonical vocabulary mapping already happened at the
+  extraction seam. Every normalization is recorded per record under
+  `normalizations` in `output/extraction_log.json`.
+- **Fails the run (exit 1)** — the file-count gate (N distinct-hash files
+  in → N records out; no file may be silently lost), structural contract
+  violations, and unmappable vocabulary values (the failure message names
+  the file, field and value). The dataset and log are still written on a
+  failing run so the offending rows can be audited.
+- **Warns only (exit 0)** — completeness per form field (an entirely empty
+  field is a warning), scan and per-file failure records (all-null rows),
+  and sentinel-like values (`not mentioned`, `none`, `n/a`…) appearing in
+  PDF output — the extractor emits real nulls, so sentinels are a backstop.
 
 ## Legacy pipeline stages (CSV input)
 

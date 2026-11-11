@@ -1,11 +1,12 @@
 """v1 PDF intake: a folder of syllabus PDFs -> one clean dataset file.
 
-Tracer implementation (T1): SHA-256 dedup, lexicographic ``syllabus_id``
-assignment, pypdf text extraction, the extraction-backend seam for field
-extraction, a stub file-count validation, and the output contract
-(``syllabi_dataset.csv`` + ``extraction_log.json``). Later tickets deepen
-each stage: the schema contract + vocabularies (T2), normalize-then-assert
-validation (T3), the extraction cache (T4).
+SHA-256 dedup, lexicographic ``syllabus_id`` assignment, pypdf text
+extraction, the extraction-backend seam for field extraction, and the
+output contract (``syllabi_dataset.csv`` + ``extraction_log.json``).
+Backend output is normalized + contract-checked at the seam (T2); the
+normalize-then-assert validation stage lives in
+:mod:`ai_syllabi_etl.validation` (T3). Later tickets deepen each stage:
+the extraction cache (T4), the LLM backend (T6).
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ from .schema import (
     normalize_record,
     validate_record,
 )
+from .validation import validate_dataset
 
 # Re-exported for backward compatibility (the dataset column layout).
 __all__ = ["DATASET_COLUMNS", "FIELD_COLUMNS", "intake", "run_pdf_pipeline", "write_outputs"]
@@ -149,21 +151,6 @@ def intake(
     return records, log
 
 
-def file_count_gate(records: list[dict], distinct_files: int) -> dict[str, Any]:
-    """Stub validation (T1): the structural gate N files in -> N records out."""
-    ok = len(records) == distinct_files
-    return {
-        "overall": "pass" if ok else "fail",
-        "checks": [
-            {
-                "name": "file_count_gate",
-                "status": "pass" if ok else "fail",
-                "detail": f"{distinct_files} distinct files -> {len(records)} records",
-            }
-        ],
-    }
-
-
 def _cell(value: Any) -> str:
     """Dataset cell encoding: real nulls -> empty, lists -> JSON arrays."""
     if value is None:
@@ -203,10 +190,10 @@ def run_pdf_pipeline(cfg: dict[str, Any]) -> int:
         f"{len(log['dropped_duplicates'])} duplicate(s) dropped"
     )
 
-    quality = file_count_gate(records, log["distinct_files"])
+    quality, records, log = validate_dataset(records, log, contract)
     print(f"\n  quality: {quality['overall'].upper()}")
     for check in quality["checks"]:
-        mark = {"pass": "ok  ", "fail": "FAIL"}[check["status"]]
+        mark = {"pass": "ok  ", "warn": "warn", "fail": "FAIL"}[check["status"]]
         print(f"    [{mark}] {check['name']}: {check['detail']}")
 
     dataset_path, log_path = write_outputs(records, log, cfg["paths"]["output"])

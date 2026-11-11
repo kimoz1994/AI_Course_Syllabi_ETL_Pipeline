@@ -103,6 +103,18 @@ canonical strings are the form spec's exact values, e.g. `Short Quizzes`).
 `extraction_log.json` `issues` for T3 to fail on). Optional
 `schema_contract` path key in `config.yaml`. 94 tests green offline.
 
+### T3 implemented (2026-11-12)
+
+Normalize-then-assert validation: new `validation.py` — `validate_dataset()`
+normalizes (`year` → ISO date where parseable; actions logged per record
+under `normalizations`) then asserts the exact records-to-be-written, so a
+PASS certifies the file on disk. Fail the run (exit 1): file-count gate,
+structural contract violations, unmappable vocabulary values (message names
+file/field/value; dataset still written for audit). Warn only: completeness,
+scan/failed records, sentinel-like backstop values. `pdf_intake` stub
+`file_count_gate` removed. 110 tests green offline. Remaining tickets:
+#5 cache, #7 llm backend, #6 CSV archival, #8 docs rewrite.
+
 ## Open decisions (not blocking, decide during grill/spec)
 
 - **Production LLM backend**: LM Studio (local) vs Ollama vs cloud
@@ -120,7 +132,8 @@ canonical strings are the form spec's exact values, e.g. `Short Quizzes`).
 
 - `python -m pip` is broken — do NOT try to install packages.
 - Tests: `$env:PYTHONPATH="src"; $env:PYTHONIOENCODING='utf-8'` then
-  `python -m unittest discover -s tests -t .` (54 tests; unittest, not pytest).
+  `python -m unittest discover -s tests -t .` (110 tests as of T3; unittest,
+  not pytest).
 - Full pipeline: `python -m ai_syllabi_etl run --backend rule` from repo root.
 - PowerShell 5.1 note: `python ... 2>&1 | Select-String` can report a bogus
   exit code 1 even when tests pass; check `$LASTEXITCODE` directly.

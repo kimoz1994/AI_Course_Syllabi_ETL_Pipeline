@@ -199,5 +199,96 @@ class IntakeSchemaValidationTests(unittest.TestCase):
                 run_pdf_pipeline(cfg)
 
 
+class ValidationStagePipelineTests(unittest.TestCase):
+    """The pipeline seam: the validation stage decides the exit code and
+    the file on disk is the normalized, asserted version."""
+
+    class _StubBackend(ExtractionBackend):
+        name = "stub"
+
+        def __init__(self, fields):
+            self._fields = fields
+
+        def extract(self, text, source=None):
+            return dict(self._fields)
+
+    def _stub_fields(self, **overrides):
+        fields = {
+            "country": "Narnia",
+            "institution": "Alpha University",
+            "year": "September 2023",
+            "course_level": "Undergraduate",
+            "target_audience": None,
+            "course_title": "Introduction to Artificial Intelligence",
+            "prerequisites": None,
+            "course_description": None,
+            "course_topics": ["Search"],
+            "course_outcomes": None,
+            "tools": ["Python"],
+            "textbooks": None,
+            "teaching_method": ["Lecture based learning"],
+            "assessment_methods": ["Final Exam"],
+        }
+        fields.update(overrides)
+        return fields
+
+    def _run(self, tmp, fields):
+        """Run run_pdf_pipeline with the stub backend at the backend seam."""
+        from unittest.mock import patch
+
+        from ai_syllabi_etl import pdf_intake
+
+        backend = self._StubBackend(fields)
+        cfg = {
+            "input": str(PDF_DIR),
+            "paths": {"output": str(tmp / "output")},
+            "extraction_backend": "stub",
+        }
+        with patch.object(pdf_intake, "make_extraction_backend", return_value=backend):
+            return pdf_intake.run_pdf_pipeline(cfg)
+
+    def test_unmappable_value_fails_run_but_writes_dataset_and_log(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="ai_syllabi_etl_t3_") as td:
+            tmp = Path(td)
+            exit_code = self._run(tmp, self._stub_fields(course_level="Narnian"))
+            self.assertEqual(exit_code, 1)
+            dataset = tmp / "output" / "syllabi_dataset.csv"
+            self.assertTrue(dataset.is_file(), "dataset written for audit on fail")
+            log = json.loads(
+                (tmp / "output" / "extraction_log.json").read_text(encoding="utf-8")
+            )
+            entry = next(
+                e for e in log["records"] if e["source_file"] == "alpha_syllabus.pdf"
+            )
+            self.assertEqual(
+                entry["issues"],
+                [{"field": "course_level", "issue": "unmapped_value", "value": "Narnian"}],
+            )
+
+    def test_passing_run_writes_iso_normalized_year_and_logged_actions(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="ai_syllabi_etl_t3_") as td:
+            tmp = Path(td)
+            exit_code = self._run(tmp, self._stub_fields())
+            self.assertEqual(exit_code, 0)
+            rows = _read_csv(tmp / "output" / "syllabi_dataset.csv")
+            alpha = next(r for r in rows if r["source_file"] == "alpha_syllabus.pdf")
+            self.assertEqual(alpha["year"], "2023-09-01")
+            log = json.loads(
+                (tmp / "output" / "extraction_log.json").read_text(encoding="utf-8")
+            )
+            entry = next(
+                e for e in log["records"] if e["source_file"] == "alpha_syllabus.pdf"
+            )
+            self.assertEqual(
+                entry["normalizations"],
+                [{"field": "year", "from": "September 2023", "to": "2023-09-01",
+                  "rule": "iso_date"}],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

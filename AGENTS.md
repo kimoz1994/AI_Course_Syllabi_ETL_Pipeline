@@ -13,7 +13,7 @@ major revision — see `docs/adr/0001-pdf-first-input-and-llm-first-classificati
 
 - Python 3.10+. Install: `python -m pip install -e .`
 - Run: `python -m ai_syllabi_etl run --backend rule` (offline, deterministic)
-- Tests: `python -m unittest discover -s tests -t .` (54 tests, no network/LLM)
+- Tests: `python -m unittest discover -s tests -t .` (unittest, no network/LLM)
 - `docs/WALKTHROUGH.md` explains every file and the dataset-driven design
 - `DATA_DICTIONARY.md` documents every column, cleaning rule and interpretation caveat
 - `AI_course_syllabi_scripts.md` at the root is the **legacy** snippet file — read for
