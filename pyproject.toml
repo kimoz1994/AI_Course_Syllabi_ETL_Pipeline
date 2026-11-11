@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-syllabi-etl"
+version = "1.0.0"
+description = "ETL pipeline that turns AI course syllabi into an analysis-ready dataset: extract, clean, LLM-classify topics into the AIMA 4th-edition taxonomy, validate, and report."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ahmed Abdulhakim" }]
+keywords = ["etl", "syllabi", "data-quality", "llm", "education", "ai-curriculum"]
+dependencies = [
+    "pandas>=2.0",
+    "plotly>=5.18",
+    "requests>=2.31",
+    "PyYAML>=6.0",
+    "openpyxl>=3.1",
+]
+
+[project.optional-dependencies]
+pdf = ["pypdf>=4.0"]
+dev = ["pytest>=8.0", "ruff>=0.4"]
+
+[project.scripts]
+ai-syllabi-etl = "ai_syllabi_etl.cli:main"
+
+[project.urls]
+Dataset = "https://www.kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi"
+Source = "https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

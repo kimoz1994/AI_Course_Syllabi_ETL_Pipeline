@@ -1,0 +1,9 @@
+Which country ? ,Which education institution ? ,Year ? ,What is the course title ? ,What are the course prerequisites ? ,What is the course description ?,What is the course  content/topics?,What are the course outcomes/objectives?,Hardware or Software tools used in the course ? ,Textbook/references used in the course ? ,Teaching method ? ,What are assessment methods ? 
+United States,MIT,2018-01-01,Introduction to Artificial Intelligence,Data Structures,Foundations of AI,"History of AI, intelligent agents, uninformed and heuristic search, A* search, adversarial search, minimax","1. Understand uninformed and heuristic search techniques
+2. Understand adversarial search",python,Artificial Intelligence: A Modern Approach,Lecture based learning,Short Quizes;Final Exam
+India,IIT Delhi,2022-01-01,Machine Learning,not mentioned,not mentioned,"Supervised learning, decision trees, neural networks, deep learning, model selection, cross-validation","1. Apply supervised learning algorithms
+2. Evaluate models","weka
+python",not mentioned,Lecture based learning;Lab sessions,Assignments;Final Exam;Project
+Italy,University of Bologna,2020-01-01,Knowledge Representation and Reasoning,Logic,Knowledge-based agents,"Propositional logic, first-order logic, inference, knowledge representation, ontological engineering, automated planning, STRIPS",1. Design knowledge representation schemes,prolog,not mentioned,Seminar based learning,Midterm;Final Exam
+Germany,TU Munich,2019-01-01,Probabilistic Reasoning,,Reasoning under uncertainty,"Bayesian networks, probabilistic reasoning, Markov decision processes, utility theory, decision networks, POMDPs",,,,Lecture based learning,Short Quizes;Project
+,Not University,not mentioned,Quantum Computing for AI,,not mentioned,"Quantum computing, quantum algorithms",,,,not mentioned,not mentioned

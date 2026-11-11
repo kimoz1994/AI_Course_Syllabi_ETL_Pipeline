@@ -1,0 +1,8 @@
+class_id,class_name,n_topics,n_syllabi,pct_syllabi
+1,Artificial Intelligence Foundations,135,72,63.7
+2,Problem Solving,291,71,62.8
+3,"Knowledge, Reasoning, and Planning",230,65,57.5
+4,Uncertain Knowledge and Reasoning,157,57,50.4
+5,Machine Learning,552,87,77.0
+6,"Communicating, Perceiving, and Acting",145,53,46.9
+7,Other,1114,92,81.4

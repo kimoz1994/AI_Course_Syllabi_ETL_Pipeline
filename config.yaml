@@ -1,0 +1,43 @@
+# ============================================================
+# AI Course Syllabi ETL - pipeline configuration
+# All paths are resolved relative to this file's directory.
+# ============================================================
+
+input: data/raw/AI_course_syllabi_CSV.csv   # csv or xlsx (Google-Form export)
+taxonomy: taxonomy/aima_taxonomy.json       # 7-class AIMA 4th-edition taxonomy
+prompt: prompts/classify_topics.md          # LLM prompt template
+
+paths:
+  processed: data/processed                 # clean tables + SQLite DB (gitignored)
+  output: output                            # figures + report (committed)
+
+# Classification backend:  rule | openai | mock
+#   rule    - deterministic keyword matching against the taxonomy (offline, used by CI/tests)
+#   openai  - any OpenAI-compatible chat server: LM Studio, Ollama, vLLM, or a cloud API
+#   mock    - canned responses (unit tests only)
+backend: rule
+
+llm:                                        # only used when backend == openai
+  base_url: http://localhost:1234/v1        # LM Studio default; Ollama uses http://localhost:11434/v1
+  model: lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF
+  api_key_env: LMSTUDIO_API_KEY             # env var holding the key (local servers accept any value)
+  temperature: 0.0
+  timeout_seconds: 60
+  max_retries: 3
+  fallback_to_rule: true                    # degrade gracefully instead of failing the run
+
+validation:
+  min_year: 1990
+  max_year: 2030
+  min_topic_coverage: 0.8                   # fraction of syllabi that must have non-empty topics
+  required_columns:
+    - country
+    - institution
+    - year
+    - course_title
+    - course_topics
+    - teaching_methods
+    - assessment_methods
+
+report:
+  top_n_methods: 10                         # rows shown in teaching/assessment charts

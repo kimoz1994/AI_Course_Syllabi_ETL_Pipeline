@@ -1,0 +1,6 @@
+pandas>=2.0
+plotly>=5.18
+requests>=2.31
+PyYAML>=6.0
+openpyxl>=3.1
+# optional PDF intake (roadmap): pypdf>=4.0
