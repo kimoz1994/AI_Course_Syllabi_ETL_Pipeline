@@ -5,11 +5,31 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Dataset: CC BY 4.0](https://img.shields.io/badge/dataset-CC%20BY%204.0-orange.svg)](https://www.kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi)
 
-An **ETL pipeline for AI course syllabi**: extract a structured syllabus
-table, clean it into an analysis-ready dataset, classify every topic and
-course outcome into the 7-part taxonomy of *Artificial Intelligence: A
-Modern Approach* (4th edition), run data-quality gates, and render the four
-research questions (RQ1–RQ4) as verified, publication-style figures.
+An **ETL pipeline for AI course syllabi**. Target shape: a folder of
+syllabus PDFs goes in, a single clean dataset file comes out (v1,
+extraction-only) — later extended with topic classification into the
+7-part taxonomy of *Artificial Intelligence: A Modern Approach* (4th
+edition) and the four research questions (RQ1–RQ4) as verified,
+publication-style figures.
+
+**Where things stand:** the **legacy CSV pipeline** (diagram below) is
+the only implemented code today — it ingests the manually-transcribed
+Kaggle CSV. The **v1 PDF pipeline** is fully specced in
+[issue #1](https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline/issues/1)
+and is being implemented ticket-by-ticket (#2–#8). Domain decisions live in
+[`GLOSSARY.md`](GLOSSARY.md) and
+[`docs/adr/0001-pdf-first-input-and-llm-first-classification.md`](docs/adr/0001-pdf-first-input-and-llm-first-classification.md).
+
+v1 pipeline — **in progress** (spec #1, tickets #2–#8):
+
+```
+PDFs in (data/pdfs) ──► DEDUP ──► TEXT ──► EXTRACT ──► VALIDATE ──► syllabi_dataset.csv
+                       (SHA-256) (pypdf)  (14-field     (normalize-   + extraction_log.json
+                                           schema,       then-assert,
+                                           mock/llm)     gate + warnings)
+```
+
+Legacy CSV pipeline — **current working implementation**:
 
 ```
 raw CSV/XLSX ──► EXTRACT ──► CLEAN ──► CLASSIFY ──► VALIDATE ──► LOAD ──► REPORT
@@ -22,16 +42,6 @@ This repository is a from-scratch rebuild of the original snippet collection
 `AI_course_syllabi_scripts.md` (kept untouched at the repo root: LM Studio /
 AnythingLLM calls, prompts and a bar-plot template).
 
-> **Status (2026-11-12):** the CSV pipeline below is the current, working
-> implementation. The next revision — **v1, extraction-only: a folder of
-> syllabus PDFs in, a single clean dataset file out** (no classification, no
-> figures) — is fully specced in
-> [issue #1](https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline/issues/1)
-> and will replace the CSV as the input path when implemented. Domain
-> decisions from the design session are recorded in
-> [`GLOSSARY.md`](GLOSSARY.md) and
-> [`docs/adr/0001-pdf-first-input-and-llm-first-classification.md`](docs/adr/0001-pdf-first-input-and-llm-first-classification.md).
-
 ## Dataset
 
 | | |
@@ -39,12 +49,12 @@ AnythingLLM calls, prompts and a bar-plot template).
 | Source | [kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi](https://www.kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi) (v2, CC BY 4.0) |
 | Origin | Public syllabi found via Google (`… filetype:pdf OR filetype:html`), manually extracted into a Google Form → one row per course |
 | Size | 113 syllabi × 12 columns, 18 countries, years 2000–2024 |
-| In this repo | `data/raw/AI_course_syllabi_CSV.csv` — the canonical raw input |
+| In this repo | `data/raw/AI_course_syllabi_CSV.csv` — the legacy CSV pipeline's input; in the v1 PDF pipeline the CSV is the owner's manual example output (archived, not an input) |
 
 See [`DATA_DICTIONARY.md`](DATA_DICTIONARY.md) for every column, its
 cleaning rule, and interpretation caveats.
 
-## Quickstart
+## Quickstart (legacy CSV pipeline)
 
 ```bash
 git clone https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline.git
@@ -77,7 +87,7 @@ plain `chat/completions`, so cloud APIs work too — just change `base_url`,
 recommended path for publication-grade accuracy**; the rule backend is the
 reproducible offline baseline used by CI.
 
-## Pipeline stages
+## Legacy pipeline stages (CSV input)
 
 | Stage | Module | What it does |
 |---|---|---|
