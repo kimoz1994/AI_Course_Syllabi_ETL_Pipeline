@@ -23,6 +23,10 @@ major revision — see `docs/adr/0001-pdf-first-input-and-llm-first-classificati
 
 ## Agent skills
 
+Engineering + productivity skills (mattpocock/skills) are installed **locally**
+in `.opencode/skills/` (gitignored — per-machine tooling). Run sessions from the
+repo root so they are discovered.
+
 ### Issue tracker
 
 GitHub Issues via the `gh` CLI. See `docs/agents/issue-tracker.md`.

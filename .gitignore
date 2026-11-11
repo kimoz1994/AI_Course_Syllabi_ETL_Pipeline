@@ -19,6 +19,9 @@ env/
 data/processed/*
 !data/processed/.gitkeep
 
+# Local agent tooling (mattpocock/skills — installed per-machine, not part of the package)
+.opencode/
+
 # Editors / OS
 .vscode/
 .idea/
