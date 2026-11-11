@@ -22,6 +22,16 @@ This repository is a from-scratch rebuild of the original snippet collection
 `AI_course_syllabi_scripts.md` (kept untouched at the repo root: LM Studio /
 AnythingLLM calls, prompts and a bar-plot template).
 
+> **Status (2026-11-12):** the CSV pipeline below is the current, working
+> implementation. The next revision — **v1, extraction-only: a folder of
+> syllabus PDFs in, a single clean dataset file out** (no classification, no
+> figures) — is fully specced in
+> [issue #1](https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline/issues/1)
+> and will replace the CSV as the input path when implemented. Domain
+> decisions from the design session are recorded in
+> [`GLOSSARY.md`](GLOSSARY.md) and
+> [`docs/adr/0001-pdf-first-input-and-llm-first-classification.md`](docs/adr/0001-pdf-first-input-and-llm-first-classification.md).
+
 ## Dataset
 
 | | |
@@ -153,10 +163,14 @@ ai_course_syllabi_etl/
 
 ## Roadmap
 
-- [ ] **PDF intake** — extract sections (`outcomes`, `topics`) directly from syllabus PDFs (`pypdf` extra is already wired in)
-- [ ] **LLM backend bake-off** — pick the production model (LM Studio local vs. cloud) and record accuracy vs. the rule baseline
+- [ ] **v1: PDF extraction (spec: issue #1)** — `data/pdfs/*.pdf` in → SHA-256 dedup → pypdf text extraction → LLM field extraction (14-field schema contract, any OpenAI-compatible backend) → normalize-and-validate → `output/syllabi_dataset.csv` + `extraction_log.json`. Classification, reporting, and the separate clean stage move out of the v1 run path.
+- [ ] **Topic classification (deferred ticket)** — AIMA 4th-edition classification of topic items, book-grounded; dormant until then.
+- [ ] **Reporting (deferred ticket)** — RQ1–RQ4 figures + 19-point checklist, regenerated from the v1 dataset.
+- [ ] **Syllabus scraping (planned ticket)** — auto-collect syllabus PDFs from university websites to feed the PDF corpus.
+- [ ] **OCR (planned ticket)** — text recognition for image-only scans (v1 warns + emits an all-null record instead).
+- [ ] **Production LLM bake-off** — pick the production model (LM Studio local vs. Ollama vs. cloud) when running the real pipeline.
 - [ ] Publish `output/report.md` + figures to GitHub Pages
-- [ ] Inter-annotator-style spot checks: sample classified items for manual review
+- [ ] Inter-annotator-style spot checks: sample extracted rows for manual review (first real run, per spec #1)
 
 ## License & attribution
 

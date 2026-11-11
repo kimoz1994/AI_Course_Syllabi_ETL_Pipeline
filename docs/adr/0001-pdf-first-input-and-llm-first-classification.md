@@ -56,6 +56,19 @@ elements are artifacts of that manual stage rather than of the real problem:
 > contain a listed Bloom verb, and the outcomes section is identified **by
 > content, not title**. Full inventory: `HANDOFF.md`.
 
+> **Resolution (2026-11-12):** the owner replaced the 3rd-edition file with the
+> **4th edition** (now in `reference/aima/`). The open decision above is
+> resolved: the classification schema and the grounding text are both
+> **4th edition** — no relabeling, no edition mismatch.
+
+> **Scope revision (2026-11-12):** v1 of the pipeline is **extraction-only** —
+> the output is a single dataset file (one row per distinct PDF, all form
+> fields, real nulls, list-valued fields as JSON arrays). Topic
+> classification (Decisions 5–6, including the book-grounded mini-RAG) is
+> **deferred** to a later ticket; reporting/analysis is deferred too. Two new
+> planned steps are recorded as roadmap items: **syllabus scraping**
+> (auto-collect syllabus PDFs from university websites) and **reporting**.
+
 ## Consequences
 
 - Stage 0 requires the owner's three inputs: the **PDF corpus**, the

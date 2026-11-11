@@ -44,8 +44,8 @@ are already created on the remote.
 
 1. **The PDF corpus** — ✅ *received 2026-11-11, see below.*
 2. **The Google-Form field definitions** — ✅ *received 2026-11-11, see below.*
-3. **The AIMA 4th-edition book** (file) — for book-grounded classification.
-   *(Superseded: received — but it is the **3rd edition**, see below.)*
+3. **The AIMA book** — ✅ received; owner swapped in the **4th edition**
+   (2026-11-12), so schema and grounding text are the same edition.
 
 ## Reference material received (2026-11-11)
 
@@ -55,7 +55,7 @@ Everything is in `reference/` (gitignored — third-party copyrighted PDFs,
 | Item | Location | Notes |
 |---|---|---|
 | **119 syllabus PDFs** (59.4 MB) | `reference/syllabi files/` | The Stage-0 corpus. Note: 119 files vs 113 CSV rows — the CSV likely deduplicated some (several byte-identical duplicates visible, e.g. two copies of `9YUE2cwBNq5lVtrlORc1VWb93hVIcCnadSkWiSoy.pdf`, two of `Artificial_intelligence_course.pdf`). Stage 0 needs a **hash-based dedup rule** and the file-count gate must count *distinct* files. |
-| **AIMA book** (20.9 MB) | `reference/aima/Artificial Intelligence - A Modern Approach (3rd Edition).pdf` | ⚠️ **3rd edition, not 4th.** The pipeline's 7 class names ("Knowledge, Reasoning & Planning", "Machine Learning") are 4th-edition part names. Open decision for the grill session: classify against the 3rd-edition book's actual part structure, or keep 4th-edition names using the 3rd-edition book as grounding text. |
+| **AIMA book** | `reference/aima/` | ✅ **4th edition** (owner swapped out the 3rd-edition file on 2026-11-12); classification schema and grounding text are now the same edition. |
 | **Form spec** | `reference/form questions .txt` | The 13 form fields with descriptions + allowed value lists (course_level and teaching_method and assessment_method have **closed vocabularies**; country/institution/year/audience/title/prerequisites/description/topics/outcomes/tools/textbooks are free text). Key extraction rules embedded: **hardware/software tools have no dedicated section — must be inferred from other sections**; teaching method is sometimes called "course format". |
 | **Bloom's verb table** | `reference/bloom verbs .txt` | LaTeX table, 6 levels (remember/understand/apply/analyze/evaluate/create). **Owner's collection rule: outcome lines are collected only if they contain a verb on this list; verbs not on the list are not collected.** |
 
