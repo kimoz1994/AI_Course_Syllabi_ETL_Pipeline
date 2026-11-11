@@ -594,6 +594,32 @@ def run_pipeline(cfg, up_to):
 
 ---
 
+## v1 PDF intake (in progress) — `extraction.py`, `pdf_intake.py`
+
+The PDF-first revision (spec: issue #1) adds two modules, currently exercised
+by `tests/test_pdf_pipeline.py` over committed fixture PDFs:
+
+- **`tests/fixtures/pdfs/`** — four tiny authored PDFs: two distinct one-page
+  syllabi, one byte-identical duplicate of the first, and one blank-page PDF
+  with no text layer (a simulated scan). Hand-written minimal PDF syntax, so
+  CI needs no PDF-authoring dependency.
+- **`extraction.py`** — the *extraction-backend seam*: the Strategy boundary
+  that turns one PDF's text into a dict of form-field values. `mock` returns
+  canned records (offline tests/CI); the `llm` backend (any OpenAI-compatible
+  server) is a later ticket.
+- **`pdf_intake.py`** — the v1 stages: SHA-256 content hashing → dedup
+  (byte-identical files collapse to the lexicographically-first filename;
+  drops are logged, never silent) → `syllabus_id` assignment in lexicographic
+  filename order *after* dedup → pypdf text extraction (no text layer = an
+  all-null record plus a warning) → extraction backend → a stub file-count
+  gate (N distinct files → N records; the full normalize-then-assert
+  validation is a later ticket) → outputs: `output/syllabi_dataset.csv`
+  (real nulls as empty cells, list fields as JSON arrays) and
+  `output/extraction_log.json` (per-file status, hash, dropped duplicates,
+  warnings). The CLI runs this flow whenever the config `input` is a
+  directory; the CSV flow below stays for the legacy dataset until its
+  retirement ticket.
+
 ## 12. The tests — how you *know* it works
 
 `tests/fixtures/sample.csv` = 5 handcrafted rows with the **exact raw

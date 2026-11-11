@@ -87,6 +87,30 @@ plain `chat/completions`, so cloud APIs work too — just change `base_url`,
 recommended path for publication-grade accuracy**; the rule backend is the
 reproducible offline baseline used by CI.
 
+### Running the v1 PDF pipeline (in progress)
+
+The next revision — a folder of syllabus PDFs in, a single clean dataset
+file out — is being built ticket-by-ticket
+([spec #1](https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline/issues/1)).
+Its first vertical slice (T1) is implemented: point the config `input` at a
+**directory** of PDFs and the pipeline dedups byte-identical files by
+SHA-256, assigns `syllabus_id`s in lexicographic filename order, extracts
+text with pypdf, fills the 14 form fields through the extraction backend,
+and writes `output/syllabi_dataset.csv` + `output/extraction_log.json`:
+
+```yaml
+input: data/pdfs                    # a folder of PDFs (not the legacy CSV)
+extraction_backend: mock            # canned records; the llm backend lands in T6
+```
+
+```bash
+python -m ai_syllabi_etl run        # PDF flow runs whenever `input` is a directory
+```
+
+Files with no text layer (scans) produce an all-null record plus a warning
+(no OCR in v1). Normalize-then-assert validation, the extraction cache and
+the real LLM backend land in their own tickets.
+
 ## Legacy pipeline stages (CSV input)
 
 | Stage | Module | What it does |

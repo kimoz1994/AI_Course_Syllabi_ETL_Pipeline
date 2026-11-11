@@ -18,6 +18,7 @@ from .clean import clean_dataframe
 from .config import ConfigError, load_config
 from .extract import ExtractError, extract
 from .load import export
+from .pdf_intake import IntakeError
 from .report import build_outputs
 from .validate import validate
 
@@ -154,9 +155,14 @@ def main(argv: list[str] | None = None) -> int:
             cfg["input"] = str(input_path)
         if args.backend:
             cfg["backend"] = args.backend
+        if Path(cfg["input"]).is_dir():
+            # v1 PDF flow: a folder of syllabi PDFs -> dataset + extraction log
+            from .pdf_intake import run_pdf_pipeline
+
+            return run_pdf_pipeline(cfg)
         up_to = "report" if args.command == "run" else args.command
         return run_pipeline(cfg, up_to=up_to)
-    except (ConfigError, ExtractError) as exc:
+    except (ConfigError, ExtractError, IntakeError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2
     except Exception as exc:  # pragma: no cover - top-level safety net

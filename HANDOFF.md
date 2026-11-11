@@ -73,12 +73,24 @@ vary wildly ("Outcomes", "Objectives", "Learning Goals", …). Two-part rule:
 This matters because the form spec warns outcomes must not be confused with
 "course objectives" — the Bloom-verb signal is the discriminator.
 
-### Stage-0 environment gotcha (new)
+### Stage-0 environment gotcha — RESOLVED (2026-11-12)
 
-`pypdf` is **not installed locally** and `python -m pip` is broken — PDF
-extraction can't run locally until this is solved (CI has no such problem).
-Candidate fixes to evaluate during `implement`: `py -m pip`, a venv created
-from the Store Python, or `winget`/`nuget` python. Record the chosen one here.
+`pypdf` now imports locally. The fix: the broken `python -m pip` was a
+**corrupted user-site pip** (`pip._vendor.rich._emoji_codes` missing).
+Deleting `pip` + `pip-*.dist-info` from the Store-Python user site-packages
+(`…\Packages\PythonSoftwareFoundation.Python.3.10_…\LocalCache\local-packages\Python310\site-packages`)
+and re-running `python -m ensurepip --upgrade` restored a clean pip (23.0.1
+from the Store package itself). Then `python -m pip install -e ".[pdf]"`
+installed **pypdf 7.0.1**. There is no `py` launcher on this machine.
+
+### T1 implemented (2026-11-12)
+
+The first tracer slice of Stage 0 is done: `extraction.py` (backend seam +
+mock), `pdf_intake.py` (dedup → IDs → text → mock extraction → file-count
+gate → `syllabi_dataset.csv` + `extraction_log.json`), fixture PDFs under
+`tests/fixtures/pdfs/`, smoke test at the pipeline seam. The CLI runs the
+PDF flow whenever `input` is a directory. Remaining tickets: #3 schema+vocab,
+#4 validation, #5 cache, #6 CSV archival, #7 llm backend, #8 docs rewrite.
 
 ## Open decisions (not blocking, decide during grill/spec)
 
