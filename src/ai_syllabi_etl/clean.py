@@ -186,10 +186,17 @@ def clean_dataframe(raw: pd.DataFrame) -> tuple[pd.DataFrame, list[dict[str, str
     df.insert(0, _ID_COLUMN, [f"S{i:03d}" for i in range(1, len(df) + 1)])
     log.append({"rule": "assign_id", "column": "-", "result": _ID_COLUMN})
 
+    # Text = anything that isn't numeric/bool/datetime. Checking the dtype
+    # family (not `object` specifically) because pandas 3.x reads CSV text
+    # into the dedicated `str` dtype, where is_object_dtype() is False.
     text_columns = [
         c
         for c in df.columns
-        if c != _ID_COLUMN and c != "year" and pd.api.types.is_object_dtype(df[c])
+        if c != _ID_COLUMN
+        and c != "year"
+        and not pd.api.types.is_numeric_dtype(df[c])
+        and not pd.api.types.is_bool_dtype(df[c])
+        and not pd.api.types.is_datetime64_any_dtype(df[c])
     ]
     for col in text_columns:
         before_missing = int(df[col].isna().sum())
