@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install package
-        run: python -m pip install -e .
+        run: python -m pip install -e ".[pdf]"
 
       - name: Static checks (syntax / undefined names)
         run: |

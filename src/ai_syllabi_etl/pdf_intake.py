@@ -13,6 +13,7 @@ from __future__ import annotations
 import csv
 import hashlib
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -200,7 +201,7 @@ def run_pdf_pipeline(cfg: dict[str, Any]) -> int:
     print(f"           - {log_path.name}")
 
     if quality["overall"] == "fail":
-        print("\nPipeline finished with FAILING quality gates.", file=__import__("sys").stderr)
+        print("\nPipeline finished with FAILING quality gates.", file=sys.stderr)
         return 1
     print("\nPipeline finished successfully.")
     return 0
