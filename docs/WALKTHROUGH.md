@@ -594,11 +594,30 @@ def run_pipeline(cfg, up_to):
 
 ---
 
-## v1 PDF intake (in progress) — `extraction.py`, `pdf_intake.py`
+## v1 PDF intake (in progress) — `schema.py`, `extraction.py`, `pdf_intake.py`
 
-The PDF-first revision (spec: issue #1) adds two modules, currently exercised
-by `tests/test_pdf_pipeline.py` over committed fixture PDFs:
+The PDF-first revision (spec: issue #1) adds these modules, currently exercised
+by `tests/test_extraction.py` (plain-dict seam tests) and
+`tests/test_pdf_pipeline.py` (fixture PDFs):
 
+- **`schema_contract.yaml`** (repo root, next to `config.yaml`) — the
+  schema contract's *configurable* half: the three closed vocabularies
+  (`course_level`, `teaching_method`, `assessment_methods`) with the form
+  spec's exact canonical value strings, plus the synonym→canonical alias
+  map the extractor's near-variants normalize through (`lecture` →
+  `Lecture based learning`, `undergrad` → `Undergraduate`, …). Maintain
+  this file, never code; matching is case- and whitespace-insensitive;
+  `not mentioned` needs no alias (it normalizes to null) and
+  `Other/not clear` is a legal distinct label everywhere.
+- **`schema.py`** — the contract's *code* half: the 14 `FIELD_COLUMNS`
+  (the form spec is canonical; the legacy CSV exported only 12),
+  `LIST_FIELDS` (topics, outcomes, tools, textbooks, teaching method,
+  assessment methods — dataset cells are JSON arrays; `tools` is a single
+  inferred field, no hardware/software split), and two entry points:
+  `normalize_record()` (empty→null, `not mentioned`→null, alias map, list
+  cleanup) and `validate_record()` (14 fields present, real nulls allowed,
+  types, vocabulary membership). `normalize_record` returns unmappable
+  values alongside the record so validation can fail on them.
 - **`tests/fixtures/pdfs/`** — four tiny authored PDFs: two distinct one-page
   syllabi, one byte-identical duplicate of the first, and one blank-page PDF
   with no text layer (a simulated scan). Hand-written minimal PDF syntax, so
@@ -611,12 +630,14 @@ by `tests/test_pdf_pipeline.py` over committed fixture PDFs:
   (byte-identical files collapse to the lexicographically-first filename;
   drops are logged, never silent) → `syllabus_id` assignment in lexicographic
   filename order *after* dedup → pypdf text extraction (no text layer = an
-  all-null record plus a warning) → extraction backend → a stub file-count
-  gate (N distinct files → N records; the full normalize-then-assert
-  validation is a later ticket) → outputs: `output/syllabi_dataset.csv`
+  all-null record plus a warning) → extraction backend → **normalize +
+  validate at the seam** (structural violations raise; unmappable vocabulary
+  values stay in the record and are logged under `issues` in the extraction
+  log, where the validation ticket fails the run) → a stub file-count gate
+  (N distinct files → N records) → outputs: `output/syllabi_dataset.csv`
   (real nulls as empty cells, list fields as JSON arrays) and
   `output/extraction_log.json` (per-file status, hash, dropped duplicates,
-  warnings). The CLI runs this flow whenever the config `input` is a
+  warnings, issues). The CLI runs this flow whenever the config `input` is a
   directory; the CSV flow below stays for the legacy dataset until its
   retirement ticket.
 

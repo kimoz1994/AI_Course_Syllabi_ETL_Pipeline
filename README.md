@@ -111,6 +111,26 @@ Files with no text layer (scans) produce an all-null record plus a warning
 (no OCR in v1). Normalize-then-assert validation, the extraction cache and
 the real LLM backend land in their own tickets.
 
+**Schema contract (T2).** Every record the extraction backend emits is
+normalized and validated against the 14-field form schema before it reaches
+the dataset (`schema.py`):
+
+- the 14 form fields must be present — values may be real nulls; list-valued
+  fields (topics, outcomes, tools, textbooks, teaching method, assessment
+  methods) must be JSON arrays; `tools` is a single inferred field (no
+  hardware/software split);
+- the three closed vocabularies (`course_level`, `teaching_method`,
+  `assessment_methods`) use the form spec's exact canonical strings — e.g.
+  `Short Quizzes`, not the legacy CSV's `Short Quizes` typo — defined in
+  **`schema_contract.yaml`** (config, not code), together with a maintained
+  synonym→canonical alias map (`lecture` → `Lecture based learning`,
+  `undergrad` → `Undergraduate`, …). `not mentioned` normalizes to null;
+  `Other/not clear` passes through as a distinct label;
+- a vocabulary value with no alias that is not canonical (and isn't
+  `Other/not clear`) is **unmappable**: it stays in the record verbatim and
+  is listed under `issues` in `output/extraction_log.json`, where the
+  validation stage (next ticket) fails the run on it.
+
 ## Legacy pipeline stages (CSV input)
 
 | Stage | Module | What it does |

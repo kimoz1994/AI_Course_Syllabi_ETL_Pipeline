@@ -1,0 +1,143 @@
+# ============================================================
+# Schema contract - canonical vocabularies + synonym alias map
+#
+# Source of truth: `reference/form questions .txt` (the original
+# Google-Form spec), NOT the legacy CSV export - the CSV's
+# `Short Quizes` spelling was a transcription artifact.
+#
+# The extraction backend may emit near-variant wording (`lecture`,
+# `lecture-based`, ...); the alias map below normalizes every
+# vocabulary value to its canonical form before the dataset is
+# written. `not mentioned` needs no alias: it normalizes to null.
+# A value that has no alias, is not canonical, and is not
+# `Other/not clear` is *unmappable*: it is surfaced in the
+# extraction log and the validation stage fails the run on it.
+#
+# Maintain this file, never code: add aliases as new variants
+# appear. Matching is case- and whitespace-insensitive.
+# ============================================================
+
+vocabularies:
+  # Single-choice field: exactly one value (or null).
+  course_level:
+    - School
+    - Undergraduate
+    - Master
+    - PhD
+    - not mentioned
+    - Other/not clear
+  # Multi-choice fields: one or more values per syllabus.
+  teaching_method:
+    - Collaborative or Group-based learning
+    - Lecture based learning
+    - "Project based learning (i.e., team project)"
+    - Learning using case study
+    - Flipped classroom
+    - LAB demos
+    - Seminar
+    - Workshop
+    - Online course
+    - "Hybrid learning (face-to-face and online)"
+    - not mentioned
+    - Other/not clear
+  assessment_methods:
+    - Short Quizzes
+    - Assignments
+    - Final Exam
+    - Midterm Exam
+    - Project
+    - Attendance or participation
+    - Presentation
+    - Report
+    - not mentioned
+    - Other/not clear
+
+aliases:
+  course_level:
+    school: School
+    high school: School
+    secondary school: School
+    undergraduate: Undergraduate
+    undergrad: Undergraduate
+    bachelor: Undergraduate
+    bachelors: Undergraduate
+    master: Master
+    masters: Master
+    msc: Master
+    graduate: Master
+    phd: PhD
+    ph.d: PhD
+    doctorate: PhD
+    other: Other/not clear
+    other/not clear: Other/not clear
+    unclear: Other/not clear
+    not clear: Other/not clear
+  teaching_method:
+    collaborative: Collaborative or Group-based learning
+    collaborative learning: Collaborative or Group-based learning
+    group work: Collaborative or Group-based learning
+    group-based: Collaborative or Group-based learning
+    group based: Collaborative or Group-based learning
+    group-based learning: Collaborative or Group-based learning
+    lecture: Lecture based learning
+    lectures: Lecture based learning
+    lecture-based: Lecture based learning
+    lecture based: Lecture based learning
+    lecture based learning: Lecture based learning
+    lecture-based learning: Lecture based learning
+    project: "Project based learning (i.e., team project)"
+    projects: "Project based learning (i.e., team project)"
+    project-based: "Project based learning (i.e., team project)"
+    project based: "Project based learning (i.e., team project)"
+    project work: "Project based learning (i.e., team project)"
+    project-based learning: "Project based learning (i.e., team project)"
+    project based learning: "Project based learning (i.e., team project)"
+    case study: Learning using case study
+    case studies: Learning using case study
+    case-study: Learning using case study
+    case study learning: Learning using case study
+    flipped: Flipped classroom
+    flipped class: Flipped classroom
+    flipped classroom: Flipped classroom
+    lab: LAB demos
+    labs: LAB demos
+    laboratory: LAB demos
+    lab demos: LAB demos
+    seminar: Seminar
+    seminars: Seminar
+    workshop: Workshop
+    workshops: Workshop
+    online: Online course
+    online course: Online course
+    e-learning: Online course
+    hybrid: "Hybrid learning (face-to-face and online)"
+    blended: "Hybrid learning (face-to-face and online)"
+    hybrid learning: "Hybrid learning (face-to-face and online)"
+    other: Other/not clear
+    other/not clear: Other/not clear
+    unclear: Other/not clear
+    not clear: Other/not clear
+  assessment_methods:
+    quiz: Short Quizzes
+    quizzes: Short Quizzes
+    short quiz: Short Quizzes
+    assignment: Assignments
+    assignments: Assignments
+    homework: Assignments
+    final: Final Exam
+    final exam: Final Exam
+    midterm: Midterm Exam
+    midterm exam: Midterm Exam
+    project: Project
+    projects: Project
+    attendance: Attendance or participation
+    participation: Attendance or participation
+    attendance and participation: Attendance or participation
+    presentation: Presentation
+    presentations: Presentation
+    report: Report
+    reports: Report
+    other: Other/not clear
+    other/not clear: Other/not clear
+    unclear: Other/not clear
+    not clear: Other/not clear

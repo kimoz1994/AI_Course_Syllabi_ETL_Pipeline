@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 from ai_syllabi_etl.cli import main
+from ai_syllabi_etl.extraction import ExtractionBackend
 
 REPO = Path(__file__).resolve().parents[1]
 PDF_DIR = REPO / "tests" / "fixtures" / "pdfs"
@@ -100,6 +101,84 @@ class PdfPipelineSmokeTests(unittest.TestCase):
         self.assertTrue(scan_entry["warnings"])
         ok_entry = next(r for r in log["records"] if r["syllabus_id"] == "S001")
         self.assertEqual(ok_entry["status"], "ok")
+
+
+class IntakeSchemaValidationTests(unittest.TestCase):
+    """The pipeline seam: backend records are normalized + validated at intake."""
+
+    class _StubBackend(ExtractionBackend):
+        name = "stub"
+
+        def __init__(self, fields):
+            self._fields = fields
+
+        def extract(self, text, source=None):
+            return dict(self._fields)
+
+    def _stub_fields(self, **overrides):
+        fields = {
+            "country": "Narnia",
+            "institution": "Alpha University",
+            "year": None,
+            "course_level": "undergrad",
+            "target_audience": None,
+            "course_title": "Introduction to Artificial Intelligence",
+            "prerequisites": None,
+            "course_description": None,
+            "course_topics": ["search", "machine learning"],
+            "course_outcomes": None,
+            "tools": ["Python"],
+            "textbooks": None,
+            "teaching_method": ["lecture-based", "Cooperative learning"],
+            "assessment_methods": ["quizzes"],
+        }
+        fields.update(overrides)
+        return fields
+
+    def test_records_normalized_and_unmapped_surfaced_in_log(self):
+        from ai_syllabi_etl.pdf_intake import intake
+        from ai_syllabi_etl.schema import DEFAULT_CONTRACT_PATH, load_schema_contract
+
+        contract = load_schema_contract(DEFAULT_CONTRACT_PATH)
+        backend = self._StubBackend(self._stub_fields())
+        records, log = intake(PDF_DIR, backend, contract)
+        alpha = next(r for r in records if r["source_file"] == "alpha_syllabus.pdf")
+        self.assertEqual(alpha["course_level"], "Undergraduate")
+        self.assertEqual(
+            alpha["teaching_method"], ["Lecture based learning", "Cooperative learning"]
+        )
+        self.assertEqual(
+            alpha["assessment_methods"], ["Short Quizzes"]
+        )
+        entry = next(e for e in log["records"] if e["syllabus_id"] == alpha["syllabus_id"])
+        self.assertEqual(
+            entry["issues"],
+            [{"field": "teaching_method", "issue": "unmapped_value",
+              "value": "Cooperative learning"}],
+        )
+
+    def test_structurally_invalid_backend_output_raises(self):
+        from ai_syllabi_etl.pdf_intake import IntakeError, intake
+        from ai_syllabi_etl.schema import DEFAULT_CONTRACT_PATH, load_schema_contract
+
+        contract = load_schema_contract(DEFAULT_CONTRACT_PATH)
+        backend = self._StubBackend({"course_title": "only one field"})
+        with self.assertRaises(IntakeError):
+            intake(PDF_DIR, backend, contract)
+
+    def test_clean_stub_record_logs_no_issues(self):
+        from ai_syllabi_etl.pdf_intake import intake
+        from ai_syllabi_etl.schema import DEFAULT_CONTRACT_PATH, load_schema_contract
+
+        contract = load_schema_contract(DEFAULT_CONTRACT_PATH)
+        backend = self._StubBackend(self._stub_fields(teaching_method=["Seminar"],
+                                                      course_level="Master",
+                                                      assessment_methods=["Final Exam"]))
+        records, log = intake(PDF_DIR, backend, contract)
+        alpha = next(r for r in records if r["source_file"] == "alpha_syllabus.pdf")
+        self.assertEqual(alpha["course_level"], "Master")
+        entry = next(e for e in log["records"] if e["syllabus_id"] == alpha["syllabus_id"])
+        self.assertEqual(entry["issues"], [])
 
 
 if __name__ == "__main__":

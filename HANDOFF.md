@@ -92,6 +92,17 @@ gate → `syllabi_dataset.csv` + `extraction_log.json`), fixture PDFs under
 PDF flow whenever `input` is a directory. Remaining tickets: #3 schema+vocab,
 #4 validation, #5 cache, #6 CSV archival, #7 llm backend, #8 docs rewrite.
 
+### T2 implemented (2026-11-12)
+
+Schema contract at the seam: new `schema.py` (`FIELD_COLUMNS` moved here
+from `pdf_intake.py`, `normalize_record`, `validate_record`) and
+`schema_contract.yaml` (canonical vocabularies + alias map as config;
+canonical strings are the form spec's exact values, e.g. `Short Quizzes`).
+`pdf_intake.intake()` normalizes + validates backend output (structural →
+`IntakeError`; unmappable vocabulary values stay in the record and land in
+`extraction_log.json` `issues` for T3 to fail on). Optional
+`schema_contract` path key in `config.yaml`. 94 tests green offline.
+
 ## Open decisions (not blocking, decide during grill/spec)
 
 - **Production LLM backend**: LM Studio (local) vs Ollama vs cloud

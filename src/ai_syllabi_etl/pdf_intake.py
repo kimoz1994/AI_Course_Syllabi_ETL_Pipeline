@@ -18,25 +18,17 @@ from pathlib import Path
 from typing import Any
 
 from .extraction import ExtractionBackend, make_extraction_backend
-
-# The 14 form-field columns (form spec is canonical; the legacy CSV exported
-# only 12 of these). Order fixes the dataset column layout.
-FIELD_COLUMNS = (
-    "country",
-    "institution",
-    "year",
-    "course_level",
-    "target_audience",
-    "course_title",
-    "prerequisites",
-    "course_description",
-    "course_topics",
-    "course_outcomes",
-    "tools",
-    "textbooks",
-    "teaching_method",
-    "assessment_methods",
+from .schema import (
+    DEFAULT_CONTRACT_PATH,
+    FIELD_COLUMNS,
+    SchemaContract,
+    load_schema_contract,
+    normalize_record,
+    validate_record,
 )
+
+# Re-exported for backward compatibility (the dataset column layout).
+__all__ = ["DATASET_COLUMNS", "FIELD_COLUMNS", "intake", "run_pdf_pipeline", "write_outputs"]
 
 # Provenance columns precede the form fields in the dataset.
 DATASET_COLUMNS = ("syllabus_id", "source_file", "content_hash") + FIELD_COLUMNS
@@ -70,16 +62,26 @@ def _extract_text(path: Path) -> str:
         return ""
 
 
-def intake(folder: str | Path, backend: ExtractionBackend) -> tuple[list[dict], dict]:
+def intake(
+    folder: str | Path,
+    backend: ExtractionBackend,
+    contract: SchemaContract | None = None,
+) -> tuple[list[dict], dict]:
     """Run the intake stages over ``folder``; return ``(records, log)``.
 
     Stages: hash every PDF, collapse byte-identical duplicates (the
     lexicographically-first filename is the representative), assign
     ``syllabus_id``s in lexicographic filename order after dedup, extract
-    text, and fill field dicts through the extraction backend. A file with
-    no text layer (a scan) yields an all-null record plus a warning — never
-    a dropped file.
+    text, and fill field dicts through the extraction backend. Backend
+    output is normalized against the schema contract (alias map, real
+    nulls) and validated right at the seam: structural violations raise
+    :class:`IntakeError`, and unmappable vocabulary values stay in the
+    record and are logged in the entry's ``issues`` for the validation
+    stage to fail on. A file with no text layer (a scan) yields an
+    all-null record plus a warning — never a dropped file.
     """
+    if contract is None:
+        contract = load_schema_contract(DEFAULT_CONTRACT_PATH)
     root = Path(folder)
     paths = sorted(root.glob("*.pdf"), key=lambda p: p.name)
     if not paths:
@@ -112,11 +114,21 @@ def intake(folder: str | Path, backend: ExtractionBackend) -> tuple[list[dict], 
         if not text.strip():
             entry["status"] = "scan"
             entry["warnings"] = ["no text layer (image-only scan?) - all-null record"]
+            entry["issues"] = []
             fields = {name: None for name in FIELD_COLUMNS}
         else:
             fields = backend.extract(text, source={"file": path.name})
+            fields, _unmapped = normalize_record(fields, contract)
+            issues = validate_record(fields, contract)
+            structural = [i for i in issues if i["issue"] != "unmapped_value"]
+            if structural:
+                raise IntakeError(
+                    f"{path.name}: extraction output violates the schema contract: "
+                    + "; ".join(f"{i['field']}: {i['issue']}" for i in structural)
+                )
             entry["status"] = "ok"
             entry["warnings"] = []
+            entry["issues"] = [i for i in issues if i["issue"] == "unmapped_value"]
         records.append(
             {
                 "syllabus_id": syllabus_id,

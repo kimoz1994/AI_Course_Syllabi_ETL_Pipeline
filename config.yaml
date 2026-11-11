@@ -6,6 +6,7 @@
 input: data/raw/AI_course_syllabi_CSV.csv   # csv or xlsx (Google-Form export)
 taxonomy: taxonomy/aima_taxonomy.json       # 7-class AIMA 4th-edition taxonomy
 prompt: prompts/classify_topics.md          # LLM prompt template
+# schema_contract: schema_contract.yaml      # optional: canonical vocabularies + alias map (PDF flow)
 
 paths:
   processed: data/processed                 # clean tables + SQLite DB (gitignored)

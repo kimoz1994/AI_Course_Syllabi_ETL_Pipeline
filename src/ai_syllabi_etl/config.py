@@ -51,7 +51,7 @@ DEFAULTS: dict[str, Any] = {
 }
 
 # config keys whose value is a path relative to the config file
-_PATH_KEYS = ("input", "taxonomy", "prompt")
+_PATH_KEYS = ("input", "taxonomy", "prompt", "schema_contract")
 _PATH_SUBKEYS = ("processed", "output")
 
 
@@ -113,7 +113,8 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
     base = cfg_path.parent
 
     for key in _PATH_KEYS:
-        cfg[key] = _resolve(base, cfg[key])
+        if key in cfg:  # optional keys (schema_contract) may be absent
+            cfg[key] = _resolve(base, cfg[key])
     for key in _PATH_SUBKEYS:
         cfg["paths"][key] = _resolve(base, cfg["paths"][key])
 
