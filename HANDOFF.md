@@ -4,6 +4,9 @@ Read this first if you're a session opening in this repo after a break.
 
 ## Status: stable baseline, revision pending
 
+> **UPDATE 2026-11-11 (later the same day): the three blockers are now
+> SATISFIED — see "Reference material received" below.**
+
 - The **CSV-ingestion pipeline** is complete and green: 113/113 rows preserved,
   3,248 items classified (rule backend), quality PASS, 5/5 figures pass the
   19-point checklist. 54 tests OK. CI badge is green
@@ -39,12 +42,43 @@ are already created on the remote.
 
 ## ⛔ Waiting on the owner (the three blockers)
 
-1. **The PDF corpus** — the raw syllabi PDFs (folder or link). The Kaggle
-   dataset ships only the transcribed CSV; the PDFs are Stage-0's real input.
-2. **The Google-Form field definitions** — what each captured field meant
-   (names, semantics, edge cases). This becomes the Stage-0 extraction schema
-   contract, verbatim.
+1. **The PDF corpus** — ✅ *received 2026-11-11, see below.*
+2. **The Google-Form field definitions** — ✅ *received 2026-11-11, see below.*
 3. **The AIMA 4th-edition book** (file) — for book-grounded classification.
+   *(Superseded: received — but it is the **3rd edition**, see below.)*
+
+## Reference material received (2026-11-11)
+
+Everything is in `reference/` (gitignored — third-party copyrighted PDFs,
+~80 MB total; keep local, never push to GitHub):
+
+| Item | Location | Notes |
+|---|---|---|
+| **119 syllabus PDFs** (59.4 MB) | `reference/syllabi files/` | The Stage-0 corpus. Note: 119 files vs 113 CSV rows — the CSV likely deduplicated some (several byte-identical duplicates visible, e.g. two copies of `9YUE2cwBNq5lVtrlORc1VWb93hVIcCnadSkWiSoy.pdf`, two of `Artificial_intelligence_course.pdf`). Stage 0 needs a **hash-based dedup rule** and the file-count gate must count *distinct* files. |
+| **AIMA book** (20.9 MB) | `reference/aima/Artificial Intelligence - A Modern Approach (3rd Edition).pdf` | ⚠️ **3rd edition, not 4th.** The pipeline's 7 class names ("Knowledge, Reasoning & Planning", "Machine Learning") are 4th-edition part names. Open decision for the grill session: classify against the 3rd-edition book's actual part structure, or keep 4th-edition names using the 3rd-edition book as grounding text. |
+| **Form spec** | `reference/form questions .txt` | The 13 form fields with descriptions + allowed value lists (course_level and teaching_method and assessment_method have **closed vocabularies**; country/institution/year/audience/title/prerequisites/description/topics/outcomes/tools/textbooks are free text). Key extraction rules embedded: **hardware/software tools have no dedicated section — must be inferred from other sections**; teaching method is sometimes called "course format". |
+| **Bloom's verb table** | `reference/bloom verbs .txt` | LaTeX table, 6 levels (remember/understand/apply/analyze/evaluate/create). **Owner's collection rule: outcome lines are collected only if they contain a verb on this list; verbs not on the list are not collected.** |
+
+### Outcomes-section identification rule (from the owner, 2026-11-11)
+
+The outcomes section must be identified **by content, not by title** — titles
+vary wildly ("Outcomes", "Objectives", "Learning Goals", …). Two-part rule:
+
+1. Candidate section = text after a heading like outcomes/objectives/learning
+   goals (the heading is a *hint*, never the deciding signal).
+2. A line is an outcome item iff it starts with (or contains) a **Bloom's
+   Taxonomy verb** from `reference/bloom verbs .txt`. No Bloom verb → not
+   collected.
+
+This matters because the form spec warns outcomes must not be confused with
+"course objectives" — the Bloom-verb signal is the discriminator.
+
+### Stage-0 environment gotcha (new)
+
+`pypdf` is **not installed locally** and `python -m pip` is broken — PDF
+extraction can't run locally until this is solved (CI has no such problem).
+Candidate fixes to evaluate during `implement`: `py -m pip`, a venv created
+from the Store Python, or `winget`/`nuget` python. Record the chosen one here.
 
 ## Open decisions (not blocking, decide during grill/spec)
 

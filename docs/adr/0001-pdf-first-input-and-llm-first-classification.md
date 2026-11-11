@@ -45,6 +45,17 @@ elements are artifacts of that manual stage rather than of the real problem:
    to ground LLM judgments; retrieval design to be specified in Stage-0
    tickets.
 
+> **Correction (2026-11-11, on receiving the reference material):** the
+> supplied book is *AIMA **3rd edition***, not 4th. The taxonomy class names
+> above ("Knowledge, Reasoning & Planning", "Machine Learning") are
+> **4th-edition part names**. Open decision for the grill session: use the
+> 3rd-edition book's own part structure as the classification schema (keeping
+> history with the owner's original prompts), or keep 4th-edition names with
+> the 3rd-edition book as grounding text. Also received: **Bloom's Taxonomy
+> verb table** + owner rule that outcome items are collected only when they
+> contain a listed Bloom verb, and the outcomes section is identified **by
+> content, not title**. Full inventory: `HANDOFF.md`.
+
 ## Consequences
 
 - Stage 0 requires the owner's three inputs: the **PDF corpus**, the

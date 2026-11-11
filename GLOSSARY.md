@@ -15,7 +15,8 @@ should use these terms as defined here; propose additions via `/domain-modeling`
 
 ## Classification
 
-- **AIMA taxonomy** — the 7-part classification schema from *Artificial Intelligence: A Modern Approach*, 4th ed. (Foundations; Problem Solving; Knowledge, Reasoning & Planning; Uncertain Knowledge & Reasoning; Machine Learning; Communicating, Perceiving & Acting; Other). The **high-level class names + descriptions are the schema** (per ADR-0001); keyword lists are NOT the taxonomy.
+- **AIMA taxonomy** — the 7-part classification schema from *Artificial Intelligence: A Modern Approach* (Foundations; Problem Solving; Knowledge, Reasoning & Planning; Uncertain Knowledge & Reasoning; Machine Learning; Communicating, Perceiving & Acting; Other). The **high-level class names + descriptions are the schema** (per ADR-0001); keyword lists are NOT the taxonomy. ⚠️ Class names are 4th-edition part names, but the supplied reference book is the **3rd edition** — edition alignment is an open decision (see ADR-0001 correction).
+- **Bloom verb signal** — the rule (owner-supplied, `reference/bloom verbs .txt`) that an outcome line is collected only if it contains a Bloom's Taxonomy verb from the 6-level list; and that the outcomes section is identified **by content, not title** (titles vary: "Outcomes", "Objectives", "Learning Goals", …).
 - **Topic item** — one topic/outcome line extracted from a syllabus record, the unit that gets classified.
 - **Classification backend** — swappable engine implementing `classify_batch`: `rule` (keyword scorer), `openai` (any OpenAI-compatible LLM server), `mock` (canned, tests only). See Strategy pattern in `docs/WALKTHROUGH.md` §7.
 - **Rule baseline** — the deterministic keyword backend; free, offline, reproducible. Used by CI as the fixed comparison point for LLM accuracy evaluation.

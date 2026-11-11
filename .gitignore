@@ -22,6 +22,9 @@ data/processed/*
 # Local agent tooling (mattpocock/skills — installed per-machine, not part of the package)
 .opencode/
 
+# Reference material (local only — third-party copyrighted PDFs + ~80 MB; see HANDOFF.md)
+reference/
+
 # Editors / OS
 .vscode/
 .idea/
