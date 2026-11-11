@@ -249,6 +249,18 @@ class NormalizeRecordTests(unittest.TestCase):
         self.assertEqual(unmapped, [])
         self.assertEqual(validate_record(record, self.contract), [])
 
+    def test_non_list_value_in_list_field_passes_through_for_validation(self):
+        record, unmapped = normalize_record(
+            _full_record(course_topics="Search, ML"), self.contract
+        )
+        self.assertEqual(unmapped, [])
+        self.assertEqual(record["course_topics"], "Search, ML")
+        issues = validate_record(record, self.contract)
+        self.assertEqual(
+            issues,
+            [{"field": "course_topics", "issue": "wrong_type", "value": "Search, ML"}],
+        )
+
 
 class MockBackendTests(unittest.TestCase):
     def test_factory_returns_mock_for_mock_config(self):

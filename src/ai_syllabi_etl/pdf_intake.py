@@ -194,9 +194,10 @@ def write_outputs(
 
 def run_pdf_pipeline(cfg: dict[str, Any]) -> int:
     """CLI entry: PDF folder in -> dataset + extraction log out (exit 0/1)."""
+    contract = load_schema_contract(cfg.get("schema_contract") or DEFAULT_CONTRACT_PATH)
     backend = make_extraction_backend(cfg)
     print(f"[intake]   backend={backend.name}: scanning {cfg['input']}")
-    records, log = intake(cfg["input"], backend)
+    records, log = intake(cfg["input"], backend, contract)
     print(
         f"[intake]   {log['files_seen']} files seen, {log['distinct_files']} distinct, "
         f"{len(log['dropped_duplicates'])} duplicate(s) dropped"

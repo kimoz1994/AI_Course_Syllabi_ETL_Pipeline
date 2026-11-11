@@ -166,21 +166,25 @@ def normalize_record(
             out[field] = mapped
             continue
         if field in LIST_FIELDS:
+            if not isinstance(value, (list, tuple)):
+                # Pass wrong types through untouched: validate_record rejects
+                # them (wrong_type); mangling e.g. a string into a list of
+                # characters would let garbage reach the dataset.
+                out[field] = value
+                continue
             items: list[str] = []
-            if isinstance(value, (list, tuple)):
-                for item in value:
-                    if not isinstance(item, str):
-                        items.append(item)
-                        continue
-                    mapped, bad = _map_vocab_value(
-                        field, item, contract
-                    ) if field in VOCAB_FIELDS else (item.strip() or None, None)
-                    if bad is not None:
-                        unmapped.append({"field": field, "value": bad})
-                    if mapped is not None and mapped not in items:
-                        items.append(mapped)
-            else:
-                items = list(value)
+            for item in value:
+                if not isinstance(item, str):
+                    items.append(item)
+                    continue
+                if field in VOCAB_FIELDS:
+                    mapped, bad = _map_vocab_value(field, item, contract)
+                else:
+                    mapped, bad = (item.strip() or None), None
+                if bad is not None:
+                    unmapped.append({"field": field, "value": bad})
+                if mapped is not None and mapped not in items:
+                    items.append(mapped)
             out[field] = items or None
             continue
         if isinstance(value, str):

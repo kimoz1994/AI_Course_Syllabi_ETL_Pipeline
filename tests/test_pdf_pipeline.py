@@ -180,6 +180,24 @@ class IntakeSchemaValidationTests(unittest.TestCase):
         entry = next(e for e in log["records"] if e["syllabus_id"] == alpha["syllabus_id"])
         self.assertEqual(entry["issues"], [])
 
+    def test_run_pdf_pipeline_honors_config_schema_contract_path(self):
+        """The config's `schema_contract` key must be loaded, not ignored."""
+        import tempfile
+
+        from ai_syllabi_etl.pdf_intake import run_pdf_pipeline
+        from ai_syllabi_etl.schema import SchemaContractError
+
+        with tempfile.TemporaryDirectory(prefix="ai_syllabi_etl_t2_") as td:
+            tmp = Path(td)
+            cfg = {
+                "input": str(PDF_DIR),
+                "paths": {"output": str(tmp / "output")},
+                "extraction_backend": "mock",
+                "schema_contract": str(tmp / "missing_contract.yaml"),
+            }
+            with self.assertRaises(SchemaContractError):
+                run_pdf_pipeline(cfg)
+
 
 if __name__ == "__main__":
     unittest.main()
