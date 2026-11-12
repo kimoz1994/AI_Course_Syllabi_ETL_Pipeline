@@ -216,15 +216,25 @@ real `llm` backend against the owner's LM Studio (`llama-3.2-3b-instruct`).
 scalar-got-list (`prerequisites`), non-array (`teaching_method`), and
 missing fields (`textbooks`) — the 3B model cannot reliably produce the
 strict JSON shape, so the layout comparison never reached the field level.
-What the run *did* show: layout mode yields more complete text (e.g. 7,612
-vs 5,917 chars on one file) and flags rotated text ("Output will be
-incomplete"). Artifacts: `experiments/layout_ab/` (gitignored — contains
-copies of copyrighted PDFs): `ab_report.html` (per-file FAILED entries),
-`default|layout/results.csv`, `default|layout/texts/*.txt` (the raw text
-pairs — the meaningful eyeball now). Candidate next steps: load a larger
-instruct model in LM Studio, and/or have the backend enforce structured
-output (LM Studio supports OpenAI `json_schema` response_format), and/or
-treat *missing* fields as null at the seam instead of retrying.
+**Round 2–4 (same model + opt-in structured output `llm.structured_output`,
+owner's 512-token reasoning budget): 10/10 extractions succeeded** — the
+shape-failure class is eliminated and calls now take 10–64s (the
+unbounded-reasoning timeouts were the round-2 blocker; the 903s "failure"
+in round 3 was two experiment instances contending for the LM Studio
+queue, not a model quirk). Field-level eyeball is pending: layout mode
+yields more complete records than default (e.g. 14/14 vs 11/14) and the
+model's remaining errors are quality-level (a hallucinated
+"Attribution or participation", a comma-glued assessment array, divergent
+years on CSC 411, `teaching_method` empty in 7/10 calls). **Resume point
+(owner, 2026-11-13):** open `experiments/layout_ab/ab_report.html`, spot
+the flagged items against the PDFs in `experiments/layout_ab/pdfs/`, then
+choose the next lever — bigger instruct model, or the owner's
+PDF→Markdown pre-extraction idea (markdown preserves headings/lists and
+would replace pypdf's flat text). Artifacts:
+`experiments/layout_ab/` (gitignored — contains copies of copyrighted
+PDFs): `ab_report.html`, `default|layout/results.csv`,
+`default|layout/texts/*.txt`, `layout_ab.py` (the experiment driver),
+`_summarize.py`.
 
 ## Open decisions (not blocking, decide during grill/spec)
 
