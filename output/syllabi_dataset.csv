@@ -1,0 +1,4 @@
+syllabus_id,source_file,content_hash,country,institution,year,course_level,target_audience,course_title,prerequisites,course_description,course_topics,course_outcomes,tools,textbooks,teaching_method,assessment_methods
+S001,alpha_syllabus.pdf,f24d43ff802aabe48682f11efb244724899e5cffffec75b6d209bf0ef4df13f4,Narnia,Mock University,,,,Introduction to Artificial Intelligence,,,"[""Search"", ""Machine learning"", ""Ethics""]",,,,,
+S002,bravo_syllabus.pdf,6b9b6673410546c36ec9ce9c77ef2091b50d2be871030a9e9ade2a7024be4a84,Narnia,Mock University,,,,Introduction to Artificial Intelligence,,,"[""Search"", ""Machine learning"", ""Ethics""]",,,,,
+S003,charlie_scan.pdf,706cdf6590d074c7eb772ca06717e9ad1d2a085ad06cb0524bafaa78cfbfb62f,,,,,,,,,,,,,,

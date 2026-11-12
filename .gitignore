@@ -15,7 +15,7 @@ env/
 .pytest_cache/
 .ruff_cache/
 
-# Generated data products (regenerate with: python -m ai_syllabi_etl run --backend rule)
+# Generated data products (regenerate with: python -m ai_syllabi_etl run)
 data/processed/*
 !data/processed/.gitkeep
 

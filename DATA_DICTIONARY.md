@@ -1,6 +1,14 @@
 # Data Dictionary — AI Course Syllabi
 
-Canonical raw file: **`data/raw/AI_course_syllabi_CSV.csv`**
+> **Status note (T5):** this document describes the **archived** Kaggle CSV —
+> now at `data/archive/AI_course_syllabi_CSV.csv`. That file is the owner's
+> manually-produced example output, kept for cross-checking; the pipeline no
+> longer reads it. The v1 dataset's columns are the 14 form fields in
+> `schema_contract.yaml` (+ `syllabus_id`, `source_file`, `content_hash`),
+> documented in `docs/WALKTHROUGH.md`; the cleaning rules below survive in
+> `schema.py`/`validation.py` where they still apply.
+
+Canonical raw file: **`data/archive/AI_course_syllabi_CSV.csv`**
 (source: [Kaggle — AI Course Syllabi](https://www.kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi), v2, 2024-08-10, **CC BY 4.0**)
 
 ## Provenance

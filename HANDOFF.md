@@ -152,15 +152,39 @@ values fail validation naming file/field/value). Config gained
 `extraction_backend` (mock | llm) and `bloom_verbs` path keys. New
 `tests/test_llm_extraction.py` (10 tests) against a stub OpenAI-compatible
 HTTP server on 127.0.0.1:0 — offline, no external network. 134 tests green
-offline. Remaining tickets: #6 CSV archival, #8 docs rewrite.
+offline.
+
+### T5 implemented (2026-11-12)
+
+The legacy CSV path is retired: the Kaggle CSV moved to
+`data/archive/AI_course_syllabi_CSV.csv` (git mv, still tracked — kept
+in-repo as the cross-checking reference for extracted rows; see
+`data/archive/README.md`). The CLI is **PDF-only**: `run` over a folder
+(+ `--config`, `--input`, `--force`); the six stage subcommands and the
+`--backend` classification override left the parser; a table-file input
+is refused with an explanatory error pointing at the archive. The legacy
+stage modules (`extract/clean/classify/validate/load/report.py`) stay in
+the codebase **dormant** with their offline tests — nothing on the run
+path calls them; classification revives in its deferred ticket. Config:
+`input` default is now `data/pdfs`; config.yaml keeps only PDF-flow keys
+(legacy keys documented as dormant comments). CI: smoke run is
+`python -m ai_syllabi_etl run --input tests/fixtures/pdfs`; artifacts are
+`output/` only. `tests/test_pipeline.py` (legacy CLI E2E) deleted;
+`tests/test_cli.py` added (5 retirement-seam tests). 132 tests green
+offline. Committed `output/` now holds the PDF-flow products
+(`syllabi_dataset.csv` + `extraction_log.json` from the fixture run); the
+stale legacy figures/report were removed. Remaining tickets: #8 docs
+rewrite, then the first real run on the ~119-file corpus.
 
 ## Open decisions (not blocking, decide during grill/spec)
 
 - **Production LLM backend**: LM Studio (local) vs Ollama vs cloud
-  OpenAI-compatible. The pipeline supports any via `backend: openai` +
-  `config.yaml`; `rule` stays the deterministic baseline for accuracy
-  comparison.
-- **Accuracy evaluation** vs the rule baseline once the LLM backend is chosen.
+  OpenAI-compatible. Supported since T6 via `extraction_backend: llm` +
+  the shared `llm` block in `config.yaml`; `mock` stays the offline
+  baseline for tests/CI, and the archived CSV is the cross-checking
+  reference for extraction accuracy.
+- **Accuracy evaluation** of extracted rows vs the archived Kaggle CSV
+  (owner's manual transcription) once the production backend is chosen.
 
 ## Housekeeping (owner, manual)
 
@@ -171,9 +195,10 @@ offline. Remaining tickets: #6 CSV archival, #8 docs rewrite.
 
 - `python -m pip` is broken — do NOT try to install packages.
 - Tests: `$env:PYTHONPATH="src"; $env:PYTHONIOENCODING='utf-8'` then
-  `python -m unittest discover -s tests -t .` (134 tests as of T6; unittest,
+  `python -m unittest discover -s tests -t .` (132 tests as of T5; unittest,
   not pytest).
-- Full pipeline: `python -m ai_syllabi_etl run --backend rule` from repo root.
+- Full pipeline (PDF flow): `python -m ai_syllabi_etl run` from repo root
+  (input folder `data/pdfs`; CI smoke-runs `--input tests/fixtures/pdfs`).
 - PowerShell 5.1 note: `python ... 2>&1 | Select-String` can report a bogus
   exit code 1 even when tests pass; check `$LASTEXITCODE` directly.
 - `clean.py` text-column detection is dtype-agnostic (pandas 2 `object` vs

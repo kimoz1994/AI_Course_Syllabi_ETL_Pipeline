@@ -3,22 +3,13 @@
 # All paths are resolved relative to this file's directory.
 # ============================================================
 
-input: data/raw/AI_course_syllabi_CSV.csv   # csv or xlsx (Google-Form export)
-taxonomy: taxonomy/aima_taxonomy.json       # 7-class AIMA 4th-edition taxonomy
-prompt: prompts/classify_topics.md          # LLM prompt template
-# schema_contract: schema_contract.yaml      # optional: canonical vocabularies + alias map (PDF flow)
+input: data/pdfs                           # a folder of syllabus PDFs (the only input)
+# schema_contract: schema_contract.yaml      # optional: canonical vocabularies + alias map
 
 paths:
-  processed: data/processed                 # clean tables + SQLite DB (gitignored)
-  output: output                            # figures + report (committed)
+  output: output                            # dataset + extraction log (committed)
 
-# Classification backend:  rule | openai | mock
-#   rule    - deterministic keyword matching against the taxonomy (offline, used by CI/tests)
-#   openai  - any OpenAI-compatible chat server: LM Studio, Ollama, vLLM, or a cloud API
-#   mock    - canned responses (unit tests only)
-backend: rule
-
-# Extraction backend for the PDF flow (input is a directory): mock | llm
+# Extraction backend for the PDF flow: mock | llm
 #   mock - canned records (offline tests/CI)
 #   llm  - any OpenAI-compatible chat server (LM Studio / Ollama / vLLM / cloud);
 #          driven by the `llm` block below. Invalid output is retried up to
@@ -30,27 +21,25 @@ extraction_backend: mock
 # backend's course-outcomes rule. Derived from the owner's reference table.
 bloom_verbs: prompts/bloom_verbs.txt
 
-llm:                                        # classification (backend == openai) + extraction (extraction_backend == llm)
+llm:                                        # extraction (extraction_backend == llm)
   base_url: http://localhost:1234/v1        # LM Studio default; Ollama uses http://localhost:11434/v1
   model: lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF
   api_key_env: LMSTUDIO_API_KEY             # env var holding the key (local servers accept any value)
   temperature: 0.0
   timeout_seconds: 60
   max_retries: 3
-  fallback_to_rule: true                    # degrade gracefully instead of failing the run
 
-validation:
-  min_year: 1990
-  max_year: 2030
-  min_topic_coverage: 0.8                   # fraction of syllabi that must have non-empty topics
-  required_columns:
-    - country
-    - institution
-    - year
-    - course_title
-    - course_topics
-    - teaching_methods
-    - assessment_methods
-
-report:
-  top_n_methods: 10                         # rows shown in teaching/assessment charts
+# --- dormant (legacy CSV flow, retired; classification revives later) ------
+# These keys belong to the retired table pipeline (extract/clean/load/report
+# in data/archive's README) and to topic classification, which stays in the
+# codebase but off the v1 run path (deferred ticket). They are kept so the
+# dormant modules stay runnable for development; the v1 flow reads none of
+# them. Defaults for all of them live in src/ai_syllabi_etl/config.py.
+#
+# backend: rule                # classification backend: rule | openai | mock
+# taxonomy: taxonomy/aima_taxonomy.json
+# prompt: prompts/classify_topics.md
+# paths.processed: data/processed
+# validation: {min_year, max_year, min_topic_coverage, required_columns}
+# report: {top_n_methods}
+# llm.fallback_to_rule: true   # classification-only graceful degradation

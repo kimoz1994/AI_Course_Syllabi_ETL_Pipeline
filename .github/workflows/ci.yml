@@ -34,15 +34,14 @@ jobs:
       - name: Unit + end-to-end tests
         run: python -m unittest discover -s tests -v
 
-      - name: Smoke run (offline rule backend)
-        run: python -m ai_syllabi_etl run --backend rule
+      - name: Smoke run (offline mock extraction backend)
+        run: python -m ai_syllabi_etl run --input tests/fixtures/pdfs
 
       - name: Upload report artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: report-py${{ matrix.python-version }}
+          name: run-py${{ matrix.python-version }}
           path: |
             output/
-            data/processed/quality_report.json
           if-no-files-found: ignore

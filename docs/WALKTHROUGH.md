@@ -32,15 +32,25 @@ instrument**:
 - **Report** — turn the loaded tables into the four research questions
   (RQ1–RQ4) your Kaggle description promises.
 
+The v1 run path (the only one; T5 retired the legacy table flow):
+
 ```
         ┌────────────────────── one command: python -m ai_syllabi_etl run ─────────────────────┐
         │                                                                                      │
- data/raw/*.csv ──► EXTRACT ──► CLEAN ──► CLASSIFY ──► VALIDATE ──► LOAD ──► REPORT ──► output/*.html, report.md
- (untouched)         (read)    (13 cols,  (rule/openai/   (8 gates,     (CSV +     (5 figures,
-                                sentinels, mock backend)  anomalies)   SQLite)    tables, checklist)
-                                years)         │
-                                               ▼
-                                    data/processed/ (syllabi.db, clean CSVs, quality_report.json)
+ data/pdfs/*.pdf ──► DEDUP ──► TEXT ──► EXTRACT ──► VALIDATE ──► output/syllabi_dataset.csv
+ (untouched)         (SHA-256) (pypdf)  (14-field     (normalize-   + output/extraction_log.json
+                                         schema,       then-assert,
+                                         mock/llm      gate + warnings)
+                                         backend)
+```
+
+The retired legacy flow (its stage modules stay in the codebase dormant,
+tested offline, off the run path; the Kaggle CSV is archived in
+`data/archive/`):
+
+```
+ data/archive/*.csv ──► EXTRACT ──► CLEAN ──► CLASSIFY ──► VALIDATE ──► LOAD ──► REPORT
+                                        (dormant — classification and reporting revive in deferred tickets)
 ```
 
 ### The golden rule of every pipeline
@@ -58,8 +68,10 @@ if row counts change).
 
 This is the part most tutorials skip: **you don't design a pipeline from a
 book, you design it from the actual data.** Before writing any code, I
-profiled `data/raw/AI_course_syllabi_CSV.csv` (113 rows × 12 columns) and let
-each finding dictate a cleaning rule:
+profiled the Kaggle CSV (now archived at
+`data/archive/AI_course_syllabi_CSV.csv`, 113 rows × 12 columns) and let
+each finding dictate a cleaning rule (these rules now live on in the
+schema contract the PDF flow validates against):
 
 | # | Finding in YOUR data | Code it produced | File / line concept |
 |---|---|---|---|
@@ -87,28 +99,24 @@ works from one that explodes on row 57.
 ### `config.yaml` — the control panel
 
 ```yaml
-input: data/raw/AI_course_syllabi_CSV.csv   # which file to process
-taxonomy: taxonomy/aima_taxonomy.json       # where the 7 classes live
-prompt: prompts/classify_topics.md          # the LLM prompt template
+input: data/pdfs                            # the syllabus PDF folder (the only input)
+extraction_backend: mock                    # mock | llm (the extraction-backend seam)
+bloom_verbs: prompts/bloom_verbs.txt        # Bloom verb table (llm backend's outcome rule)
+schema_contract: schema_contract.yaml       # canonical vocabularies + alias map
 paths:
-  processed: data/processed                 # pipeline outputs (gitignored)
-  output: output                            # report artifacts (committed)
-backend: rule                               # rule | openai | mock
-llm:
+  output: output                            # syllabi_dataset.csv + extraction_log.json
+llm:                                        # extraction (extraction_backend == llm) ...
   base_url: http://localhost:1234/v1        # LM Studio default; Ollama: :11434/v1
   model: lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF
   api_key_env: LMSTUDIO_API_KEY             # secret read from env, never from the file
   temperature: 0.0                          # deterministic LLM output
   timeout_seconds: 60
   max_retries: 3
-  fallback_to_rule: true                    # if LLM fails → rule backend takes over
-validation:
-  min_year: 1990
-  max_year: 2030
-  min_topic_coverage: 0.8                   # ≥80% of syllabi must have topics
-  required_columns: [country, institution, year, ...]
-report:
-  top_n_methods: 10
+
+# --- dormant since T5 (kept so the retired legacy/classification modules
+# stay runnable for development; the v1 run path reads none of them) ---
+# backend: rule      # classification backend: rule | openai | mock
+# taxonomy / prompt / paths.processed / validation / report / llm.fallback_to_rule
 ```
 
 Why this matters:
@@ -118,8 +126,10 @@ Why this matters:
   (`api_key_env`), so the file is safe to publish.
 - **Swapping LLMs = editing one line.** LM Studio, Ollama, vLLM and cloud
   APIs all speak the same `/v1/chat/completions` protocol.
-- **Thresholds live in config, not code** — tune `min_topic_coverage`
-  without touching Python.
+- **The retired keys stay documented, not deleted.** Classification and the
+  table flow are dormant (see the package skeleton above); their config
+  defaults still live in `config.py` so the deferred tickets can revive
+  them without re-inventing knobs.
 
 ### `taxonomy/aima_taxonomy.json` — your prompts, as data
 
@@ -164,16 +174,21 @@ whatever surrounds it.
 
 ```
 src/ai_syllabi_etl/
-├── __init__.py     # marks the folder as an importable Python package; __version__
-├── __main__.py     # makes `python -m ai_syllabi_etl` work (delegates to cli.main)
-├── config.py       # loads + validates + path-resolves config.yaml
-├── extract.py      # stage 1: read raw table
-├── clean.py        # stage 2: standardize
-├── classify.py     # stage 3: AIMA labeling (3 backends)
-├── validate.py     # stage 4: quality gates
-├── load.py         # stage 5: persist CSV + SQLite
-├── report.py       # stage 6: figures + checklist + report.md
-└── cli.py          # the conductor: wires stages together, one command each
+├── __init__.py       # marks the folder as an importable Python package; __version__
+├── __main__.py       # makes `python -m ai_syllabi_etl` work (delegates to cli.main)
+├── config.py         # loads + validates + path-resolves config.yaml
+├── schema.py         # (v1) the schema contract's code half: 14 fields + seam checks
+├── schema_contract.yaml  # ... and its config half (vocabularies + alias map), repo root
+├── extraction.py     # (v1) extraction-backend seam: mock + llm backends
+├── pdf_intake.py     # (v1) the run path: dedup -> text -> extract -> dataset + log
+├── validation.py     # (v1) normalize-then-assert dataset validation (decides exit code)
+├── extract.py        # dormant (retired legacy stage 1: read raw table)
+├── clean.py          # dormant (retired legacy stage 2: standardize)
+├── classify.py       # dormant (AIMA labeling, 3 backends — revived by a deferred ticket)
+├── validate.py       # dormant (retired legacy stage 4: table quality gates)
+├── load.py           # dormant (retired legacy stage 5: persist CSV + SQLite)
+├── report.py         # dormant (figures + checklist + report.md — revived by a deferred ticket)
+└── cli.py            # the conductor: PDF-only `run` command (T5 retired the stage subcommands)
 ```
 
 Why a package (`src/`) and not loose scripts? **Imports and tests.** Loose
@@ -497,7 +512,7 @@ the whole point: quality gates are only real if they can block automation.
 
 ---
 
-## 9. `load.py` — stage 5: make it durable and queryable
+## 9. `load.py` — dormant since T5 (stage 5 of the retired table flow)
 
 ```python
 for key, filename in CSV_TABLES.items():
@@ -522,7 +537,7 @@ so they're persisted next to the data they describe.
 
 ---
 
-## 10. `report.py` — stage 6: your 19-point checklist, automated
+## 10. `report.py` — dormant since T5 (stage 6: the 19-point checklist, automated)
 
 ### The RQ tables (all computed, none hardcoded)
 
@@ -572,25 +587,31 @@ re-running with a new backend regenerates everything.
 
 ---
 
-## 11. `cli.py` — the conductor
+## 11. `cli.py` — the conductor (PDF-only since T5)
 
 ```python
-STAGES = ("extract", "clean", "classify", "validate", "load", "report")
-
-def run_pipeline(cfg, up_to):
-    raw = extract(cfg["input"]);          if stop == 0: return 0
-    clean_df, log = clean_dataframe(raw); if stop == 1: return 0
-    class_df = classify_dataframe(...);   if stop == 2: return 0
-    ...
+def main(argv):
+    cfg = load_config(args.config)
+    if not Path(cfg["input"]).is_dir():
+        raise ConfigError(
+            "input must be a folder of syllabus PDFs ... table ingestion "
+            "(CSV/XLSX) was retired — the Kaggle CSV lives archived in "
+            "data/archive/ and is no longer an input"
+        )
+    return run_pdf_pipeline(cfg)
 ```
 
-- **Cumulative stages**: `classify` runs extract+clean first, so every
-  command produces a correct result without intermediate files. `run` = all six.
+- **One command**: `run` over a PDF folder → dedup → text → extract →
+  validate → dataset + log. The six legacy stage subcommands (`extract`,
+  `clean`, `classify`, `validate`, `load`, `report`) and the
+  `--backend` classification override left the parser with the retired
+  table flow; `--config`, `--input` (PDF-folder override) and `--force`
+  (cache bypass) remain.
 - **Exit codes are the CI contract**: `0` = success, `1` = quality gate
   failed, `2` = bad config/input. GitHub Actions fails automatically on
   non-zero — no special wiring needed.
-- Console output mirrors the audit trail (`[clean] 113 rows preserved, 6
-  column(s) had sentinel values converted`).
+- Console output mirrors the audit trail (`[intake] 4 files seen, 3
+  distinct, 1 duplicate(s) dropped`; the quality table).
 
 ---
 
@@ -716,16 +737,18 @@ tests** — no server, no network, no flakiness. This is why `mock` exists at al
 on: [push, pull_request]           # run on every push + every PR
 strategy:
   matrix: python-version: ["3.10", "3.11", "3.12"]   # same tests, 3 Pythons
-- python -m pip install -e .                        # install the package itself
+- python -m pip install -e ".[pdf]"                 # install the package (+ pypdf)
 - ruff check --select E9,F63,F7,F82 src tests       # syntax + undefined-name errors only
-- python -m unittest discover -s tests -t . -v      # the 54 tests
-- python -m ai_syllabi_etl run --backend rule       # full pipeline smoke run on real data
+- python -m unittest discover -s tests -t . -v      # the 132 tests
+- python -m ai_syllabi_etl run --input tests/fixtures/pdfs   # PDF-flow smoke run
 - actions/upload-artifact                           # attach output/ to the run
 ```
 
-The smoke run is the interesting part: **CI executes the actual pipeline on
-the actual dataset** on every push. If a future edit breaks cleaning, you
-know from the red badge before you ever pull.
+The smoke run is the interesting part: **CI executes the actual pipeline
+on the committed fixture PDF folder** on every push. If a future edit
+breaks intake, extraction or validation, you know from the red badge
+before you ever pull. (The real corpus lives locally in `data/pdfs/`,
+gitignored — CI runs the same flow over the 4 committed fixture PDFs.)
 
 ---
 
@@ -756,12 +779,15 @@ know from the red badge before you ever pull.
 ```bash
 git clone https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline.git
 cd AI_Course_Syllabi_ETL_Pipeline
-python -m pip install -e .
+python -m pip install -e ".[pdf]"
 
-python -m unittest discover -s tests -t .      # 54 tests
-python -m ai_syllabi_etl run --backend rule    # full pipeline on the 113-syllabus dataset
-# then read output/report.md and open output/*.html
+python -m unittest discover -s tests -t .                    # 132 tests
+python -m ai_syllabi_etl run --input tests/fixtures/pdfs      # PDF flow on the fixtures
+# then read output/extraction_log.json and open output/syllabi_dataset.csv
 ```
 
-With LM Studio running a model: set `backend: openai` in `config.yaml` and
-re-run — same data, same validation, smarter labels.
+With LM Studio running a model: set `extraction_backend: llm` in
+`config.yaml`, drop your syllabus PDFs into `data/pdfs/`, and run — same
+flow, real field extraction (see README for the full `llm` block). The
+retired CSV flow's stages remain in the codebase dormant; its Kaggle CSV
+is archived in `data/archive/`.

@@ -1,0 +1,110 @@
+{
+  "input_folder": "D:\\desktop\\data_analyst_exp\\ai_course_syllabi_etl\\tests\\fixtures\\pdfs",
+  "backend": "mock",
+  "cache": {
+    "hits": 0,
+    "misses": 3
+  },
+  "files_seen": 4,
+  "distinct_files": 3,
+  "dropped_duplicates": [
+    {
+      "file": "alpha_syllabus_copy.pdf",
+      "hash": "f24d43ff802aabe48682f11efb244724899e5cffffec75b6d209bf0ef4df13f4",
+      "kept_as": "alpha_syllabus.pdf"
+    }
+  ],
+  "records": [
+    {
+      "syllabus_id": "S001",
+      "source_file": "alpha_syllabus.pdf",
+      "content_hash": "f24d43ff802aabe48682f11efb244724899e5cffffec75b6d209bf0ef4df13f4",
+      "backend": "mock",
+      "status": "ok",
+      "warnings": [],
+      "issues": [],
+      "cache": "miss",
+      "fields": {
+        "country": "Narnia",
+        "institution": "Mock University",
+        "year": null,
+        "course_level": null,
+        "target_audience": null,
+        "course_title": "Introduction to Artificial Intelligence",
+        "prerequisites": null,
+        "course_description": null,
+        "course_topics": [
+          "Search",
+          "Machine learning",
+          "Ethics"
+        ],
+        "course_outcomes": null,
+        "tools": null,
+        "textbooks": null,
+        "teaching_method": null,
+        "assessment_methods": null
+      },
+      "normalizations": []
+    },
+    {
+      "syllabus_id": "S002",
+      "source_file": "bravo_syllabus.pdf",
+      "content_hash": "6b9b6673410546c36ec9ce9c77ef2091b50d2be871030a9e9ade2a7024be4a84",
+      "backend": "mock",
+      "status": "ok",
+      "warnings": [],
+      "issues": [],
+      "cache": "miss",
+      "fields": {
+        "country": "Narnia",
+        "institution": "Mock University",
+        "year": null,
+        "course_level": null,
+        "target_audience": null,
+        "course_title": "Introduction to Artificial Intelligence",
+        "prerequisites": null,
+        "course_description": null,
+        "course_topics": [
+          "Search",
+          "Machine learning",
+          "Ethics"
+        ],
+        "course_outcomes": null,
+        "tools": null,
+        "textbooks": null,
+        "teaching_method": null,
+        "assessment_methods": null
+      },
+      "normalizations": []
+    },
+    {
+      "syllabus_id": "S003",
+      "source_file": "charlie_scan.pdf",
+      "content_hash": "706cdf6590d074c7eb772ca06717e9ad1d2a085ad06cb0524bafaa78cfbfb62f",
+      "backend": "mock",
+      "status": "scan",
+      "warnings": [
+        "no text layer (image-only scan?) - all-null record"
+      ],
+      "issues": [],
+      "cache": "miss",
+      "fields": {
+        "country": null,
+        "institution": null,
+        "year": null,
+        "course_level": null,
+        "target_audience": null,
+        "course_title": null,
+        "prerequisites": null,
+        "course_description": null,
+        "course_topics": null,
+        "course_outcomes": null,
+        "tools": null,
+        "textbooks": null,
+        "teaching_method": null,
+        "assessment_methods": null
+      },
+      "normalizations": []
+    }
+  ]
+}

@@ -14,7 +14,7 @@ from typing import Any
 import yaml
 
 DEFAULTS: dict[str, Any] = {
-    "input": "data/raw/AI_course_syllabi_CSV.csv",
+    "input": "data/pdfs",
     "taxonomy": "taxonomy/aima_taxonomy.json",
     "prompt": "prompts/classify_topics.md",
     "paths": {
