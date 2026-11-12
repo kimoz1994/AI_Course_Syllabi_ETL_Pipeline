@@ -90,7 +90,6 @@ enumerate
 estimate
 evaluate
 examine
-example
 execute
 exercise
 explain
@@ -225,7 +224,7 @@ trace
 train
 transform
 translate
-trnscribe
+transcribe
 understand
 use
 utilize

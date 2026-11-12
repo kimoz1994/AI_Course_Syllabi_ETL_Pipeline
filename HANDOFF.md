@@ -149,7 +149,9 @@ The `llm` extraction backend (provider-agnostic, OpenAI-compatible) in
 `extraction.py`: endpoint/model/params/retries/API-key env var all config
 (shared `llm` block), never code. The prompt is built once from the schema
 contract + `prompts/bloom_verbs.txt` (the owner's Bloom verb table derived
-from `reference/bloom verbs .txt`, 235 verbs, multi-word entries kept) and
+from `reference/bloom verbs .txt`, 234 verbs after the owner-approved
+typo fixes (`example` noun removed, `trnscribe` → `transcribe`),
+multi-word entries kept) and
 encodes verbatim/no-translation extraction, real nulls, canonical
 vocabularies, JSON-array list fields, tools inferred from other sections,
 and the Bloom verb rule (content-not-title, stem matching, semantic rule
@@ -207,11 +209,13 @@ scope — the first real run on the ~119-file corpus + owner spot-check.**
 
 ## Open decisions (not blocking, decide during grill/spec)
 
-- **Production LLM backend**: LM Studio (local) vs Ollama vs cloud
-  OpenAI-compatible. Supported since T6 via `extraction_backend: llm` +
-  the shared `llm` block in `config.yaml`; `mock` stays the offline
-  baseline for tests/CI, and the archived CSV is the cross-checking
-  reference for extraction accuracy.
+- **Production LLM backend**: LM Studio (local) vs an OpenAI-compatible
+  cloud endpoint (owner is deciding; LM Studio works today via
+  `extraction_backend: llm` + the shared `llm` block in `config.yaml` —
+  any OpenAI-compatible `/v1/chat/completions` endpoint drops in by
+  editing `base_url`/`model`/`api_key_env`, no code change). `mock`
+  stays the offline baseline for tests/CI, and the archived CSV is the
+  cross-checking reference for extraction accuracy.
 - **Accuracy evaluation** of extracted rows vs the archived Kaggle CSV
   (owner's manual transcription) once the production backend is chosen.
 
