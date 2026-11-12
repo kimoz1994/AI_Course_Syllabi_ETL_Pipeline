@@ -22,6 +22,8 @@ DEFAULTS: dict[str, Any] = {
         "output": "output",
     },
     "backend": "rule",
+    "extraction_backend": "mock",          # PDF flow: mock | llm
+    "bloom_verbs": "prompts/bloom_verbs.txt",  # Bloom verb table (PDF flow, llm backend)
     "llm": {
         "base_url": "http://localhost:1234/v1",
         "model": "lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF",
@@ -51,7 +53,7 @@ DEFAULTS: dict[str, Any] = {
 }
 
 # config keys whose value is a path relative to the config file
-_PATH_KEYS = ("input", "taxonomy", "prompt", "schema_contract")
+_PATH_KEYS = ("input", "taxonomy", "prompt", "schema_contract", "bloom_verbs")
 _PATH_SUBKEYS = ("processed", "output")
 
 

@@ -100,7 +100,7 @@ and writes `output/syllabi_dataset.csv` + `output/extraction_log.json`:
 
 ```yaml
 input: data/pdfs                    # a folder of PDFs (not the legacy CSV)
-extraction_backend: mock            # canned records; the llm backend lands in T6
+extraction_backend: mock            # mock | llm (see below)
 ```
 
 ```bash
@@ -108,7 +108,36 @@ python -m ai_syllabi_etl run        # PDF flow runs whenever `input` is a direct
 ```
 
 Files with no text layer (scans) produce an all-null record plus a warning
-(no OCR in v1). The real LLM backend lands in its own ticket.
+(no OCR in v1).
+
+**The `llm` extraction backend (T6).** Set `extraction_backend: llm` to
+extract with any **OpenAI-compatible** chat server — LM Studio, Ollama,
+vLLM, or a cloud API; the choice is **config, not code**, driven by the
+shared `llm` block (`base_url`, `model`, `temperature`, `timeout_seconds`,
+`max_retries`, `api_key_env`). The extraction prompt encodes the schema
+contract: the 14 fields, verbatim extraction with **no translation**, real
+nulls (never sentinel words), the closed vocabularies' canonical values,
+JSON-array list fields, tools inferred from other sections, and the
+**Bloom verb rule** for outcomes (collect a line iff it starts with or
+contains a Bloom's Taxonomy verb from `prompts/bloom_verbs.txt`, matched
+case-insensitively on the stem; the section is identified by content, not
+title; for non-English text the rule applies **semantically**, with the
+English verb list as backstop). Failure handling: invalid or non-conforming
+LLM output is retried up to `llm.max_retries` times (with backoff); after
+exhaustion the file yields an **all-null record plus a warning** — the run
+completes (exit 0, quality WARN) and failures stay visible in
+`extraction_log.json` (`status: "failed"`). Vocabulary values that the
+alias map cannot canonicalize are not retried: they surface as `issues`
+and fail validation, naming file/field/value.
+
+```yaml
+extraction_backend: llm
+llm:
+  base_url: http://localhost:1234/v1   # LM Studio default; Ollama: http://localhost:11434/v1
+  model: <your-model>                  # any chat model the server exposes
+  max_retries: 3
+  api_key_env: LMSTUDIO_API_KEY        # optional; local servers need no key
+```
 
 **Schema contract (T2).** Every record the extraction backend emits is
 normalized and validated against the 14-field form schema before it reaches
@@ -234,14 +263,15 @@ Colours use the **Okabe–Ito** colour-vision-deficiency-safe palette.
 ## Tests & CI
 
 ```bash
-python -m unittest discover -s tests -t .     # 124 tests, no network, no LLM needed
+python -m unittest discover -s tests -t .     # 134 tests, no network, no LLM needed
 ```
 
 `tests/` covers cleaning rules, the rule/mock/OpenAI-parsing backends,
-validation gates, the extraction cache, and an end-to-end CLI run on a
-fixture (including the figure checklists). GitHub Actions runs the suite
-on Python 3.10–3.12, plus a full offline smoke run, and uploads the
-generated report as an artifact.
+validation gates, the extraction cache, the `llm` extraction backend
+(against a stub OpenAI-compatible server, offline), and an end-to-end CLI
+run on a fixture (including the figure checklists). GitHub Actions runs
+the suite on Python 3.10–3.12, plus a full offline smoke run, and uploads
+the generated report as an artifact.
 
 ## Project layout
 

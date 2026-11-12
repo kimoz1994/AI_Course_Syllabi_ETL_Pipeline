@@ -18,7 +18,19 @@ paths:
 #   mock    - canned responses (unit tests only)
 backend: rule
 
-llm:                                        # only used when backend == openai
+# Extraction backend for the PDF flow (input is a directory): mock | llm
+#   mock - canned records (offline tests/CI)
+#   llm  - any OpenAI-compatible chat server (LM Studio / Ollama / vLLM / cloud);
+#          driven by the `llm` block below. Invalid output is retried up to
+#          llm.max_retries times, then the file yields an all-null record +
+#          warning so the run completes with the failure visible.
+extraction_backend: mock
+
+# Bloom's Taxonomy verb table (one verb per line) for the llm extraction
+# backend's course-outcomes rule. Derived from the owner's reference table.
+bloom_verbs: prompts/bloom_verbs.txt
+
+llm:                                        # classification (backend == openai) + extraction (extraction_backend == llm)
   base_url: http://localhost:1234/v1        # LM Studio default; Ollama uses http://localhost:11434/v1
   model: lmstudio-community/Meta-Llama-3-8B-Instruct-GGUF
   api_key_env: LMSTUDIO_API_KEY             # env var holding the key (local servers accept any value)

@@ -132,6 +132,28 @@ drift) falls back to a fresh extraction instead of raising. CLI gained
 (13 tests) at the intake + pipeline seams. 124 tests green offline.
 Remaining tickets: #7 llm backend, #6 CSV archival, #8 docs rewrite.
 
+### T6 implemented (2026-11-12)
+
+The `llm` extraction backend (provider-agnostic, OpenAI-compatible) in
+`extraction.py`: endpoint/model/params/retries/API-key env var all config
+(shared `llm` block), never code. The prompt is built once from the schema
+contract + `prompts/bloom_verbs.txt` (the owner's Bloom verb table derived
+from `reference/bloom verbs .txt`, 235 verbs, multi-word entries kept) and
+encodes verbatim/no-translation extraction, real nulls, canonical
+vocabularies, JSON-array list fields, tools inferred from other sections,
+and the Bloom verb rule (content-not-title, stem matching, semantic rule
+for non-English). Shape conformance (14 keys, string-or-null scalars,
+string arrays) + non-JSON + HTTP errors are retried up to `llm.max_retries`
+with backoff; exhaustion raises `ExtractionError`, which `pdf_intake` turns
+into an all-null record with `status: "failed"` + warning — run completes
+(quality WARN), failure visible, never cached as a success. Vocabulary
+canonicalization is NOT a retry condition (seam alias map owns it; unmapped
+values fail validation naming file/field/value). Config gained
+`extraction_backend` (mock | llm) and `bloom_verbs` path keys. New
+`tests/test_llm_extraction.py` (10 tests) against a stub OpenAI-compatible
+HTTP server on 127.0.0.1:0 — offline, no external network. 134 tests green
+offline. Remaining tickets: #6 CSV archival, #8 docs rewrite.
+
 ## Open decisions (not blocking, decide during grill/spec)
 
 - **Production LLM backend**: LM Studio (local) vs Ollama vs cloud
@@ -149,7 +171,7 @@ Remaining tickets: #7 llm backend, #6 CSV archival, #8 docs rewrite.
 
 - `python -m pip` is broken — do NOT try to install packages.
 - Tests: `$env:PYTHONPATH="src"; $env:PYTHONIOENCODING='utf-8'` then
-  `python -m unittest discover -s tests -t .` (124 tests as of T4; unittest,
+  `python -m unittest discover -s tests -t .` (134 tests as of T6; unittest,
   not pytest).
 - Full pipeline: `python -m ai_syllabi_etl run --backend rule` from repo root.
 - PowerShell 5.1 note: `python ... 2>&1 | Select-String` can report a bogus

@@ -599,7 +599,9 @@ def run_pipeline(cfg, up_to):
 The PDF-first revision (spec: issue #1) adds these modules, exercised by
 `tests/test_extraction.py` (plain-dict seam tests), `tests/test_validation.py`
 (validation-boundary tests), `tests/test_extraction_cache.py` (extraction-
-cache tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
+cache tests), `tests/test_llm_extraction.py` (the `llm` backend against a
+stub OpenAI-compatible server, offline) and `tests/test_pdf_pipeline.py`
+(fixture PDFs):
 
 - **`schema_contract.yaml`** (repo root, next to `config.yaml`) — the
   schema contract's *configurable* half: the three closed vocabularies
@@ -625,8 +627,25 @@ cache tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
   CI needs no PDF-authoring dependency.
 - **`extraction.py`** — the *extraction-backend seam*: the Strategy boundary
   that turns one PDF's text into a dict of form-field values. `mock` returns
-  canned records (offline tests/CI); the `llm` backend (any OpenAI-compatible
-  server) is a later ticket.
+  canned records (offline tests/CI); **`llm` (T6)** talks to any
+  OpenAI-compatible chat server (LM Studio, Ollama, vLLM, cloud) — endpoint,
+  model, sampling parameters, timeout, retries and API-key env var are all
+  config (the `llm` block), never code. Its prompt is built once from the
+  schema contract + `prompts/bloom_verbs.txt` (the owner's Bloom verb table,
+  one verb per line) and encodes: verbatim extraction with no translation,
+  real nulls, the closed vocabularies' canonical values, JSON-array list
+  fields, tools inferred from other sections, and the Bloom verb rule
+  (outcomes identified by content not title; collect a line iff it starts
+  with or contains a listed verb, stem-matched case-insensitively; for
+  non-English text the rule applies semantically, with the English list as
+  backstop). Conformance check: all 14 keys present, scalars string-or-null,
+  list fields string arrays — violations (and non-JSON, HTTP errors) are
+  retried up to `llm.max_retries` with backoff; exhaustion raises
+  `ExtractionError`, which the intake stage turns into an all-null record
+  with `status: "failed"` + warning so the run completes and the failure
+  stays visible. Vocabulary canonicalization is deliberately *not* a retry
+  condition: the seam's alias map owns it, and unmappable values surface as
+  `issues` for validation to fail on.
 - **`pdf_intake.py`** — the v1 stages: SHA-256 content hashing → dedup
   (byte-identical files collapse to the lexicographically-first filename;
   drops are logged, never silent) → `syllabus_id` assignment in lexicographic
@@ -636,7 +655,10 @@ cache tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
   and the backend call entirely, while new files, scans, issue-carrying
   records, other backends and `--force` runs extract fresh → pypdf text
   extraction (no text layer = an all-null record plus a warning) →
-  extraction backend → **normalize + validate at the seam** (structural
+  extraction backend (an `ExtractionError` — e.g. the `llm` backend
+  exhausting its retries — becomes an all-null record with
+  `status: "failed"` + a warning, so the run completes with the failure
+  visible) → **normalize + validate at the seam** (structural
   violations raise; unmappable vocabulary values stay in the record and are
   logged under `issues` in the extraction log) → the validation stage below
   → outputs: `output/syllabi_dataset.csv` (real nulls as empty cells, list
@@ -681,6 +703,7 @@ And the v1 PDF-flow tests:
 | `test_validation.py` | normalize-then-assert: fail model (file-count gate, unmappable values, structural violations), warn model (completeness, scans, sentinels), ISO-date normalization + audit log |
 | `test_pdf_pipeline.py` | fixture PDFs end to end: dedup, lexicographic ids, all-null scan record, exit codes, the on-disk dataset + extraction log |
 | `test_extraction_cache.py` | the extraction cache at the intake + pipeline seams: clean same-backend hits perform zero extractions and write a byte-identical dataset; scans/issues/other backends/old-format logs are retried; renamed files still hit by hash; contract-stale cache entries fall back to fresh extraction; `--force` re-extracts everything and only new files are extracted when one is added |
+| `test_llm_extraction.py` | the `llm` extraction backend against a stub OpenAI-compatible server on localhost (offline): prompt contract (verbatim, real nulls, canonical vocabularies, JSON arrays, Bloom verb rule with the semantic rule), JSON parsing + shape conformance, bounded retries on invalid/HTTP-failing output, exhaustion → `ExtractionError`; and the intake failure path: an exhausted backend yields all-null records with `status: "failed"` + warning, the run completes, and failed entries are never cached as successes |
 
 Testing concept: the `mock` backend makes LLM behavior **deterministic in
 tests** — no server, no network, no flakiness. This is why `mock` exists at all.

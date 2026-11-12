@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .extraction import ExtractionBackend, make_extraction_backend
+from .extraction import ExtractionBackend, ExtractionError, make_extraction_backend
 from .schema import (
     DEFAULT_CONTRACT_PATH,
     FIELD_COLUMNS,
@@ -50,6 +50,11 @@ def sha256_file(path: Path) -> str:
         for chunk in iter(lambda: fh.read(1 << 20), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _all_null_fields() -> dict[str, Any]:
+    """The all-null record a scan or a failed extraction yields."""
+    return dict.fromkeys(FIELD_COLUMNS, None)
 
 
 def _cache_index(
@@ -168,20 +173,32 @@ def intake(
                     "no text layer (image-only scan?) - all-null record"
                 ]
                 entry["issues"] = []
-                fields = {name: None for name in FIELD_COLUMNS}
+                fields = _all_null_fields()
             else:
-                fields = backend.extract(text, source={"file": path.name})
-                fields, _unmapped = normalize_record(fields, contract)
-                issues = validate_record(fields, contract)
-                structural = [i for i in issues if i["issue"] != "unmapped_value"]
-                if structural:
-                    raise IntakeError(
-                        f"{path.name}: extraction output violates the schema contract: "
-                        + "; ".join(f"{i['field']}: {i['issue']}" for i in structural)
-                    )
-                entry["status"] = "ok"
-                entry["warnings"] = []
-                entry["issues"] = [i for i in issues if i["issue"] == "unmapped_value"]
+                try:
+                    fields = backend.extract(text, source={"file": path.name})
+                except ExtractionError as exc:
+                    # A backend that exhausted its retries stays visible as
+                    # an all-null record + warning; the run completes (the
+                    # validation stage warns on failed records).
+                    entry["status"] = "failed"
+                    entry["warnings"] = [str(exc)]
+                    entry["issues"] = []
+                    fields = _all_null_fields()
+                else:
+                    fields, _unmapped = normalize_record(fields, contract)
+                    issues = validate_record(fields, contract)
+                    structural = [i for i in issues if i["issue"] != "unmapped_value"]
+                    if structural:
+                        raise IntakeError(
+                            f"{path.name}: extraction output violates the schema contract: "
+                            + "; ".join(f"{i['field']}: {i['issue']}" for i in structural)
+                        )
+                    entry["status"] = "ok"
+                    entry["warnings"] = []
+                    entry["issues"] = [
+                        i for i in issues if i["issue"] == "unmapped_value"
+                    ]
         if hit:
             entry["status"] = "ok"
             entry["warnings"] = []
