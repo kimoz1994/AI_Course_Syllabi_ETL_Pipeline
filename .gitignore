@@ -25,6 +25,9 @@ data/processed/*
 # Reference material (local only — third-party copyrighted PDFs + ~80 MB; see HANDOFF.md)
 reference/
 
+# Local experiments (extraction A/Bs, prompt tuning — inputs may include copyrighted PDFs; never commit)
+experiments/
+
 # Editors / OS
 .vscode/
 .idea/
