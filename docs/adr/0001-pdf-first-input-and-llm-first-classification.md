@@ -1,6 +1,9 @@
 # ADR-0001: PDF-first input and LLM-first classification with book-grounded RAG
 
-**Status:** Accepted (2026-11-11)
+**Status:** Accepted (2026-11-11). **Implementation status (2026-11-12):**
+Decisions 1–4 are implemented as the v1 pipeline (tickets #2–#7); Decision 5
+(taxonomy slimming) holds in the codebase; Decision 6 and classification
+itself are **deferred** (dormant code) — see the scope revision below.
 **Deciders:** Ahmed Abdulhakim (project owner), with agent assistance
 
 ## Context

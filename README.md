@@ -5,12 +5,11 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![Dataset: CC BY 4.0](https://img.shields.io/badge/dataset-CC%20BY%204.0-orange.svg)](https://www.kaggle.com/datasets/ahmedabdulhakim/ai-course-syllabi)
 
-An **ETL pipeline for AI course syllabi**. Target shape: a folder of
-syllabus PDFs goes in, a single clean dataset file comes out (v1,
-extraction-only) — later extended with topic classification into the
-7-part taxonomy of *Artificial Intelligence: A Modern Approach* (4th
-edition) and the four research questions (RQ1–RQ4) as verified,
-publication-style figures.
+An **ETL pipeline for AI course syllabi**. A folder of syllabus PDFs goes
+in, a single clean dataset file comes out (v1, extraction-only) — later
+extended with topic classification into the 7-part taxonomy of *Artificial
+Intelligence: A Modern Approach* (4th edition) and the four research
+questions (RQ1–RQ4) as verified, publication-style figures.
 
 **Where things stand:** the **v1 PDF pipeline is implemented and is the
 only run path** — a folder of syllabus PDFs in, one clean dataset file +
@@ -36,6 +35,21 @@ The retired legacy CSV pipeline (dormant code, no longer on any run path):
 raw CSV/XLSX ──► EXTRACT ──► CLEAN ──► CLASSIFY ──► VALIDATE ──► LOAD ──► REPORT
 ```
 
+### How it works — the v1 flow, stage by stage
+
+| Stage | Module | What it does |
+|---|---|---|
+| **Dedup** | `pdf_intake.py` | Scans the input folder, hashes each PDF (SHA-256), collapses byte-identical copies to one representative (logged, never silently dropped) and assigns `syllabus_id`s in lexicographic filename order |
+| **Text** | `pdf_intake.py` | Extracts each PDF's text layer with pypdf; a file with no text layer (a scan) yields an all-null record + warning (no OCR in v1) |
+| **Extract** | `extraction.py` | The extraction-backend seam: `mock` (canned records, offline) or `llm` (any OpenAI-compatible server) fills the 14 form fields from the text. Invalid backend output is retried (`llm` backend), then surfaces as an all-null `failed` record — a file is never dropped |
+| **Schema seam** | `schema.py` | Normalizes + validates every record against `schema_contract.yaml`: list fields as JSON arrays, `not mentioned` → null, synonym → canonical vocabulary mapping via the alias map; unmappable values are logged, not guessed |
+| **Validate** | `validation.py` | Normalize-then-assert: year → ISO date where parseable, then asserts the exact records about to be written. Structural problems + unmappable values **fail** the run (exit 1); imperfections (empty fields, scans, failures) **warn** (exit 0) |
+| **Write** | `pdf_intake.py` | `output/syllabi_dataset.csv` (3 provenance + 14 form-field columns) + `output/extraction_log.json` (per-file status, warnings, issues, cache provenance) |
+
+Column-by-column semantics (null rules, arrays, vocabularies, caveats) live
+in [`DATA_DICTIONARY.md`](DATA_DICTIONARY.md); every file explained, in
+[`docs/WALKTHROUGH.md`](docs/WALKTHROUGH.md).
+
 This repository is a from-scratch rebuild of the original snippet collection
 `AI_course_syllabi_scripts.md` (kept untouched at the repo root: LM Studio /
 AnythingLLM calls, prompts and a bar-plot template).
@@ -59,9 +73,30 @@ git clone https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline.git
 cd ai_course_syllabi_etl
 python -m pip install -e ".[pdf]"    # pypdf for text extraction
 
-# put syllabus PDFs in data/pdfs/ (or point --input at any folder), then:
+# put syllabus PDFs in data/pdfs/ (create the folder if it doesn't exist),
+# or point --input at any folder, then:
 python -m ai_syllabi_etl run         # extraction_backend: mock (offline) by default
 python -m ai_syllabi_etl run --input path/to/pdfs --force   # override + bypass the cache
+```
+
+The default `extraction_backend: mock` is a deterministic placeholder — it
+produces the real pipeline shape (dedup, validation, outputs) with canned
+field values, so you can verify your setup before wiring an LLM. For real
+extraction, switch to `extraction_backend: llm` below. A first run looks
+like:
+
+```
+[intake]   backend=mock: scanning …/data/pdfs
+[intake]   119 files seen, 117 distinct, 2 duplicate(s) dropped
+[intake]   cache: 0 hit(s), 117 extracted fresh
+
+  quality: WARN
+    [ok  ] file_count_gate: 117 distinct-hash files -> 117 records
+    ...
+[write]    - syllabi_dataset.csv
+           - extraction_log.json
+
+Pipeline finished successfully.
 ```
 
 Outputs land in `output/`: `syllabi_dataset.csv` (one row per distinct

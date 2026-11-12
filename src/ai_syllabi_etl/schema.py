@@ -19,7 +19,8 @@ from typing import Any
 import yaml
 
 # The 14 form-field columns in dataset order. The legacy CSV exported only
-# 12 of these (it merged/renamed two) — the form spec is canonical.
+# 12 of these (its export omitted `course_level` and `target_audience`
+# entirely) — the form spec is canonical.
 FIELD_COLUMNS = (
     "country",
     "institution",

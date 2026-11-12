@@ -1,31 +1,42 @@
-# HANDOFF — where we left off (2026-11-11)
+# HANDOFF — where we left off (2026-11-12)
 
 Read this first if you're a session opening in this repo after a break.
 
-## Status: stable baseline, revision pending
+## Status: v1 extraction pipeline implemented — first real run pending
 
-> **UPDATE 2026-11-11 (later the same day): the three blockers are now
-> SATISFIED — see "Reference material received" below.**
-
-- The **CSV-ingestion pipeline** is complete and green: 113/113 rows preserved,
-  3,248 items classified (rule backend), quality PASS, 5/5 figures pass the
-  19-point checklist. 54 tests OK. CI badge is green
+- The **v1 PDF pipeline (ADR-0001 Stage 0) is implemented and green** — it
+  is the only run path: a folder of PDFs in → dedup (SHA-256) → pypdf text
+  → extraction backend (`mock` offline / `llm` any OpenAI-compatible
+  server) → normalize-then-assert validation → `output/syllabi_dataset.csv`
+  + `output/extraction_log.json`. 132 tests OK; CI green
   ([latest run](https://github.com/kimoz1994/AI_Course_Syllabi_ETL_Pipeline/actions)).
-- The **next major revision is agreed but NOT started** — do not pre-build it.
-  It is recorded as accepted architecture in
-  [`docs/adr/0001-pdf-first-input-and-llm-first-classification.md`](docs/adr/0001-pdf-first-input-and-llm-first-classification.md):
-  1. **Stage 0: PDF → structured table.** Input becomes `data/pdfs/*.pdf`;
-     per-PDF text extraction + LLM field extraction under a strict schema
-     contract mirroring the original Google Form fields; the extractor emits
-     **real nulls** (sentinels become a backstop, not a mechanism).
-  2. **File-count gate:** N PDFs in → N syllabus records out.
-  3. **Taxonomy slimmed to schema:** 7 AIMA classes + short descriptions as the
-     primary classification schema; the LLM classifies (like the owner's
-     original prompts); keyword lists demoted to an offline-fallback file for
-     the `rule` backend (CI baseline only).
-  4. **Book-grounded classification (mini-RAG):** the classification prompt is
-     grounded with retrieved passages from the actual AIMA 4th-edition book —
-     the owner reports this improved classification a lot vs. model memory alone.
+- Tickets T1–T6 (#2–#7) are closed COMPLETED; **#8 (T7 docs rewrite)** is
+  the last ticket of spec #1. The **legacy CSV pipeline is retired**: the
+  Kaggle CSV is archived in `data/archive/` (cross-checking reference, not
+  an input) and its stage modules stay dormant in the codebase.
+- **Next step (outside ticket scope):** the **first real run** — the
+  ~119-file corpus into `data/pdfs/`, `extraction_backend: llm` against the
+  owner's LM Studio/Ollama server, then the owner spot-checks ~10 rows
+  against source PDFs / the archived CSV (the spec's acceptance bar). Note
+  the local cache makes follow-up runs cheap: only new/changed files
+  re-extract; use `--force` after prompt changes.
+
+The architecture (recorded in
+[`docs/adr/0001-pdf-first-input-and-llm-first-classification.md`](docs/adr/0001-pdf-first-input-and-llm-first-classification.md),
+implemented except where noted):
+1. **Stage 0: PDF → structured table.** Input `data/pdfs/*.pdf`;
+   per-PDF text extraction + LLM field extraction under a strict schema
+   contract mirroring the original Google Form fields; the extractor emits
+   **real nulls** (sentinels become a backstop, not a mechanism).
+2. **File-count gate:** N distinct-hash PDFs in → N syllabus records out.
+3. **Taxonomy slimmed to schema:** 7 AIMA classes + short descriptions as
+   the primary classification schema; keyword lists demoted to an
+   offline-fallback file for the `rule` backend (CI baseline only).
+   *Classification itself is dormant — deferred ticket.*
+4. **Book-grounded classification (mini-RAG, deferred):** the classification
+   prompt grounded with retrieved passages from the actual AIMA 4th-edition
+   book — the owner reports this improved classification a lot vs. model
+   memory alone.
 
 ## How the revision will be run
 
@@ -174,7 +185,25 @@ path calls them; classification revives in its deferred ticket. Config:
 offline. Committed `output/` now holds the PDF-flow products
 (`syllabi_dataset.csv` + `extraction_log.json` from the fixture run); the
 stale legacy figures/report were removed. Remaining tickets: #8 docs
-rewrite, then the first real run on the ~119-file corpus.
+rewrite (done — see T7 below), then the first real run on the ~119-file
+corpus.
+
+### T7 implemented (2026-11-12)
+
+Documentation coherence pass (docs-only, no code change): README gained a
+"how it works" stage table (dedup → text → extract → schema seam →
+validate → write) and a first-run console sample so a new user goes
+clone → first PDF run without reading source; DATA_DICTIONARY.md was
+rewritten around the **v1 dataset** (provenance columns, all 14 form
+fields with form-spec semantics, null semantics, JSON-array list fields,
+canonical vocabularies + alias map + unmappable-value failure, Bloom verb
+rule, `extraction_log.json` schema) with the archived Kaggle CSV demoted
+to a documented appendix; HANDOFF's status header updated to
+"v1 implemented — first real run pending" and the stale "pip is broken"
+note corrected. GLOSSARY "Stage 0 (planned)" term marked implemented;
+ADR-0001 gained an implementation-status note (history unchanged).
+**No further ticket work is pending; the next step is outside ticket
+scope — the first real run on the ~119-file corpus + owner spot-check.**
 
 ## Open decisions (not blocking, decide during grill/spec)
 
@@ -193,7 +222,9 @@ rewrite, then the first real run on the ~119-file corpus.
 
 ## Environment gotchas (Windows, local)
 
-- `python -m pip` is broken — do NOT try to install packages.
+- `python -m pip` **works** since 2026-11-12 (corrupted user-site pip was
+  repaired via `ensurepip`; see "Stage-0 environment gotcha" above).
+  Install: `python -m pip install -e ".[pdf]"` (pypdf 7.0.1 installed).
 - Tests: `$env:PYTHONPATH="src"; $env:PYTHONIOENCODING='utf-8'` then
   `python -m unittest discover -s tests -t .` (132 tests as of T5; unittest,
   not pytest).
