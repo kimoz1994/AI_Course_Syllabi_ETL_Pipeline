@@ -207,6 +207,25 @@ ADR-0001 gained an implementation-status note (history unchanged).
 **No further ticket work is pending; the next step is outside ticket
 scope — the first real run on the ~119-file corpus + owner spot-check.**
 
+### Layout A/B experiment (2026-11-12, inconclusive — blocked on model)
+
+5 real PDFs (spread across the corpus) × two pypdf text modes (default =
+the pipeline's exact extraction; `extraction_mode="layout"`) through the
+real `llm` backend against the owner's LM Studio (`llama-3.2-3b-instruct`).
+**All 10 extractions failed** on shape conformance after 3 retries:
+scalar-got-list (`prerequisites`), non-array (`teaching_method`), and
+missing fields (`textbooks`) — the 3B model cannot reliably produce the
+strict JSON shape, so the layout comparison never reached the field level.
+What the run *did* show: layout mode yields more complete text (e.g. 7,612
+vs 5,917 chars on one file) and flags rotated text ("Output will be
+incomplete"). Artifacts: `experiments/layout_ab/` (gitignored — contains
+copies of copyrighted PDFs): `ab_report.html` (per-file FAILED entries),
+`default|layout/results.csv`, `default|layout/texts/*.txt` (the raw text
+pairs — the meaningful eyeball now). Candidate next steps: load a larger
+instruct model in LM Studio, and/or have the backend enforce structured
+output (LM Studio supports OpenAI `json_schema` response_format), and/or
+treat *missing* fields as null at the seam instead of retrying.
+
 ## Open decisions (not blocking, decide during grill/spec)
 
 - **Production LLM backend**: LM Studio (local) vs an OpenAI-compatible
