@@ -134,6 +134,7 @@ llm:
   base_url: http://localhost:1234/v1   # LM Studio default; Ollama: http://localhost:11434/v1
   model: <your-model>                  # any chat model the server exposes
   max_retries: 3
+  structured_output: true              # forces the JSON shape via OpenAI json_schema (LM Studio: yes)
   api_key_env: LMSTUDIO_API_KEY        # optional; local servers need no key
 ```
 

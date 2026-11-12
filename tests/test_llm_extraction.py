@@ -25,7 +25,13 @@ from ai_syllabi_etl.extraction import (
     LLMExtractionBackend,
     make_extraction_backend,
 )
-from ai_syllabi_etl.schema import DEFAULT_CONTRACT_PATH, load_schema_contract
+from ai_syllabi_etl.extraction import SCALAR_FIELDS
+from ai_syllabi_etl.schema import (
+    DEFAULT_CONTRACT_PATH,
+    FIELD_COLUMNS,
+    LIST_FIELDS,
+    load_schema_contract,
+)
 
 REPO = Path(__file__).resolve().parents[1]
 PDF_DIR = REPO / "tests" / "fixtures" / "pdfs"
@@ -142,6 +148,40 @@ class LLMBackendSeamTests(unittest.TestCase):
         self.assertEqual(req["temperature"], 0.0)
         messages = " ".join(m["content"] for m in req["messages"])
         self.assertIn("some syllabus text", messages)
+
+    def test_structured_output_is_off_by_default(self):
+        server = _StubLLMServer([(200, _openai_response(_chat_content()))])
+        try:
+            fields = self._backend(server).extract("some syllabus text")
+        finally:
+            server.stop()
+        self.assertEqual(fields, VALID_FIELDS)
+        self.assertNotIn("response_format", server.requests[0])
+
+    def test_structured_output_sends_a_strict_openai_json_schema(self):
+        server = _StubLLMServer([(200, _openai_response(_chat_content()))])
+        try:
+            fields = self._backend(server, structured_output=True).extract(
+                "some syllabus text"
+            )
+        finally:
+            server.stop()
+        self.assertEqual(fields, VALID_FIELDS)  # parsing unchanged
+        rf = server.requests[0]["response_format"]
+        self.assertEqual(rf["type"], "json_schema")
+        schema = rf["json_schema"]["schema"]
+        self.assertEqual(rf["json_schema"]["strict"], True)
+        self.assertEqual(sorted(schema["properties"]), sorted(FIELD_COLUMNS))
+        self.assertEqual(sorted(schema["required"]), sorted(FIELD_COLUMNS))
+        self.assertIs(schema["additionalProperties"], False)
+        for field in SCALAR_FIELDS:
+            self.assertEqual(
+                schema["properties"][field]["type"], ["string", "null"], field
+            )
+        for field in sorted(LIST_FIELDS):
+            spec = schema["properties"][field]
+            self.assertEqual(spec["type"], ["array", "null"], field)
+            self.assertEqual(spec["items"], {"type": "string"}, field)
 
     def test_prompt_encodes_the_extraction_contract(self):
         server = _StubLLMServer([(200, _openai_response(_chat_content()))])

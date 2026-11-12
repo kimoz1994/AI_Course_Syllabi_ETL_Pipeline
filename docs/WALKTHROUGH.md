@@ -112,6 +112,7 @@ llm:                                        # extraction (extraction_backend == 
   temperature: 0.0                          # deterministic LLM output
   timeout_seconds: 60
   max_retries: 3
+  structured_output: false                 # OpenAI json_schema response_format (LM Studio: yes)
 
 # --- dormant since T5 (kept so the retired legacy/classification modules
 # stay runnable for development; the v1 run path reads none of them) ---

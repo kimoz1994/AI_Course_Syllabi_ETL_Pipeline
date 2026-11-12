@@ -28,6 +28,9 @@ llm:                                        # extraction (extraction_backend == 
   temperature: 0.0
   timeout_seconds: 60
   max_retries: 3
+  structured_output: false                  # true = send an OpenAI json_schema response_format that
+                                            #   forces the 14-field JSON shape (LM Studio supports it;
+                                            #   servers without structured-output support reject it)
 
 # --- dormant (legacy CSV flow, retired; classification revives later) ------
 # These keys belong to the retired table pipeline (extract/clean/load/report

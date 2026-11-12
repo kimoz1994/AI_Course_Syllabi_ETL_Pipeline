@@ -174,6 +174,9 @@ class LLMExtractionBackend(ExtractionBackend):
         self.timeout = float(llm_cfg.get("timeout_seconds", 60))
         self.max_retries = max(1, int(llm_cfg.get("max_retries", 3)))
         self.api_key = os.environ.get(str(llm_cfg.get("api_key_env", "")), "") or "local"
+        self.response_format = (
+            self._json_schema_response_format() if llm_cfg.get("structured_output") else None
+        )
         self.contract = contract
 
         verbs = _load_bloom_verbs(bloom_verbs_path)
@@ -194,6 +197,34 @@ class LLMExtractionBackend(ExtractionBackend):
         )
 
     # -- transport ---------------------------------------------------------
+    def _json_schema_response_format(self) -> dict[str, Any]:
+        """OpenAI ``json_schema`` response format forcing the 14-field shape.
+
+        Opt-in via ``llm.structured_output: true`` for servers that support
+        structured output (LM Studio does); the schema pins every field —
+        scalars ``string|null``, list fields string arrays or null, all 14
+        required, no extra keys — so shape-conformance retries vanish.
+        """
+        properties: dict[str, Any] = {}
+        for field in FIELD_COLUMNS:
+            if field in LIST_FIELDS:
+                properties[field] = {"type": ["array", "null"], "items": {"type": "string"}}
+            else:
+                properties[field] = {"type": ["string", "null"]}
+        return {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "syllabus_fields",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": list(FIELD_COLUMNS),
+                    "additionalProperties": False,
+                },
+            },
+        }
+
     def _chat(self, user_content: str) -> str:
         url = f"{self.base_url}/chat/completions"
         payload = {
@@ -208,6 +239,8 @@ class LLMExtractionBackend(ExtractionBackend):
                 {"role": "user", "content": user_content},
             ],
         }
+        if self.response_format is not None:
+            payload["response_format"] = self.response_format
         headers = {"Authorization": f"Bearer {self.api_key}"}
         response = requests.post(
             url, json=payload, headers=headers, timeout=self.timeout
