@@ -598,7 +598,8 @@ def run_pipeline(cfg, up_to):
 
 The PDF-first revision (spec: issue #1) adds these modules, exercised by
 `tests/test_extraction.py` (plain-dict seam tests), `tests/test_validation.py`
-(validation-boundary tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
+(validation-boundary tests), `tests/test_extraction_cache.py` (extraction-
+cache tests) and `tests/test_pdf_pipeline.py` (fixture PDFs):
 
 - **`schema_contract.yaml`** (repo root, next to `config.yaml`) — the
   schema contract's *configurable* half: the three closed vocabularies
@@ -629,16 +630,22 @@ The PDF-first revision (spec: issue #1) adds these modules, exercised by
 - **`pdf_intake.py`** — the v1 stages: SHA-256 content hashing → dedup
   (byte-identical files collapse to the lexicographically-first filename;
   drops are logged, never silent) → `syllabus_id` assignment in lexicographic
-  filename order *after* dedup → pypdf text extraction (no text layer = an
-  all-null record plus a warning) → extraction backend → **normalize +
-  validate at the seam** (structural violations raise; unmappable vocabulary
-  values stay in the record and are logged under `issues` in the extraction
-  log) → the validation stage below → outputs: `output/syllabi_dataset.csv`
-  (real nulls as empty cells, list fields as JSON arrays) and
-  `output/extraction_log.json` (per-file status, hash, dropped duplicates,
-  warnings, issues, normalizations). The CLI runs this flow whenever the
-  config `input` is a directory; the CSV flow below stays for the legacy
-  dataset until its retirement ticket.
+  filename order *after* dedup → **extraction cache (T4)**: the previous
+  run's `extraction_log.json` doubles as the cache index keyed by content
+  hash; a file with a clean, same-backend cached entry skips text extraction
+  and the backend call entirely, while new files, scans, issue-carrying
+  records, other backends and `--force` runs extract fresh → pypdf text
+  extraction (no text layer = an all-null record plus a warning) →
+  extraction backend → **normalize + validate at the seam** (structural
+  violations raise; unmappable vocabulary values stay in the record and are
+  logged under `issues` in the extraction log) → the validation stage below
+  → outputs: `output/syllabi_dataset.csv` (real nulls as empty cells, list
+  fields as JSON arrays) and `output/extraction_log.json` (per-file status,
+  hash, dropped duplicates, warnings, issues, normalizations, plus the
+  cached `fields` and `cache: "hit"|"miss"` provenance that make the log
+  the next run's cache index). The CLI runs this flow whenever the config
+  `input` is a directory; `--force` bypasses the cache; the CSV flow below
+  stays for the legacy dataset until its retirement ticket.
 - **`validation.py`** — the v1 *normalize-then-assert* stage. Normalization:
   `year` values become ISO dates where parseable (`2023` → `2023-01-01`,
   matching the manual export's `YYYY-01-01` convention; `September 2023` →
@@ -673,6 +680,7 @@ And the v1 PDF-flow tests:
 | `test_extraction.py` | the backend seam + schema contract: alias mapping, real nulls, list cleanup, wrong types rejected, unmappable values surfaced |
 | `test_validation.py` | normalize-then-assert: fail model (file-count gate, unmappable values, structural violations), warn model (completeness, scans, sentinels), ISO-date normalization + audit log |
 | `test_pdf_pipeline.py` | fixture PDFs end to end: dedup, lexicographic ids, all-null scan record, exit codes, the on-disk dataset + extraction log |
+| `test_extraction_cache.py` | the extraction cache at the intake + pipeline seams: clean same-backend hits perform zero extractions and write a byte-identical dataset; scans/issues/other backends/old-format logs are retried; renamed files still hit by hash; contract-stale cache entries fall back to fresh extraction; `--force` re-extracts everything and only new files are extracted when one is added |
 
 Testing concept: the `mock` backend makes LLM behavior **deterministic in
 tests** — no server, no network, no flakiness. This is why `mock` exists at all.

@@ -104,7 +104,6 @@ canonical strings are the form spec's exact values, e.g. `Short Quizzes`).
 `schema_contract` path key in `config.yaml`. 94 tests green offline.
 
 ### T3 implemented (2026-11-12)
-
 Normalize-then-assert validation: new `validation.py` — `validate_dataset()`
 normalizes (`year` → ISO date where parseable; actions logged per record
 under `normalizations`) then asserts the exact records-to-be-written, so a
@@ -114,6 +113,24 @@ file/field/value; dataset still written for audit). Warn only: completeness,
 scan/failed records, sentinel-like backstop values. `pdf_intake` stub
 `file_count_gate` removed. 110 tests green offline. Remaining tickets:
 #5 cache, #7 llm backend, #6 CSV archival, #8 docs rewrite.
+
+### T4 implemented (2026-11-12)
+
+Extraction cache keyed by content hash, `--force` flag: the previous
+`output/extraction_log.json` doubles as the cache index — each entry now
+also stores its `fields` and `backend`, so a hit (same SHA-256 hash, clean
+`ok` entry, no `issues`, same backend) reuses the fields and skips both
+text extraction and the backend call. Provenance columns are recomputed
+from the current scan (renames still hit). Scans, issue-carrying records,
+other backends and pre-T4 logs extract fresh (failures are never cached as
+successes); a cache hit that fails the seam's structural check (contract
+drift) falls back to a fresh extraction instead of raising. CLI gained
+`--force` (any subcommand) → `cfg["force"]`. Log entries carry
+`cache: "hit"|"miss"`; top-level log gained `backend` and
+`cache: {hits, misses}`; the console prints
+`cache: N hit(s), M extracted fresh`. New `tests/test_extraction_cache.py`
+(13 tests) at the intake + pipeline seams. 124 tests green offline.
+Remaining tickets: #7 llm backend, #6 CSV archival, #8 docs rewrite.
 
 ## Open decisions (not blocking, decide during grill/spec)
 
@@ -132,7 +149,7 @@ scan/failed records, sentinel-like backstop values. `pdf_intake` stub
 
 - `python -m pip` is broken — do NOT try to install packages.
 - Tests: `$env:PYTHONPATH="src"; $env:PYTHONIOENCODING='utf-8'` then
-  `python -m unittest discover -s tests -t .` (110 tests as of T3; unittest,
+  `python -m unittest discover -s tests -t .` (124 tests as of T4; unittest,
   not pytest).
 - Full pipeline: `python -m ai_syllabi_etl run --backend rule` from repo root.
 - PowerShell 5.1 note: `python ... 2>&1 | Select-String` can report a bogus

@@ -55,6 +55,14 @@ def build_parser() -> argparse.ArgumentParser:
             default=None,
             help="override classification backend",
         )
+        sp.add_argument(
+            "--force",
+            action="store_true",
+            help=(
+                "re-extract every PDF, bypassing the extraction cache "
+                "(PDF flow; no effect on the legacy CSV flow)"
+            ),
+        )
     return parser
 
 
@@ -155,6 +163,8 @@ def main(argv: list[str] | None = None) -> int:
             cfg["input"] = str(input_path)
         if args.backend:
             cfg["backend"] = args.backend
+        if args.force:
+            cfg["force"] = True
         if Path(cfg["input"]).is_dir():
             # v1 PDF flow: a folder of syllabi PDFs -> dataset + extraction log
             from .pdf_intake import run_pdf_pipeline

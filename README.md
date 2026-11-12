@@ -108,8 +108,7 @@ python -m ai_syllabi_etl run        # PDF flow runs whenever `input` is a direct
 ```
 
 Files with no text layer (scans) produce an all-null record plus a warning
-(no OCR in v1). The extraction cache and the real LLM backend land in their
-own tickets.
+(no OCR in v1). The real LLM backend lands in its own ticket.
 
 **Schema contract (T2).** Every record the extraction backend emits is
 normalized and validated against the 14-field form schema before it reaches
@@ -151,6 +150,31 @@ the dataset (`schema.py`):
   field is a warning), scan and per-file failure records (all-null rows),
   and sentinel-like values (`not mentioned`, `none`, `n/a`…) appearing in
   PDF output — the extractor emits real nulls, so sentinels are a backstop.
+
+**Extraction cache (T4).** Re-runs are cheap: the previous
+`output/extraction_log.json` doubles as the cache index, keyed by the
+SHA-256 content hash (the same key dedup uses). A file whose hash matches a
+clean, same-backend entry from the previous run is **not re-extracted** —
+neither the PDF text extraction nor the backend call happens, and the
+cached fields are reused. Provenance columns (`syllabus_id`,
+`source_file`) are always recomputed from the current scan, so a renamed
+file still hits. Everything else is extracted fresh and then cached:
+
+- new or changed files (hash mismatch), files whose previous record was a
+  scan or carried `issues` (failures are never cached as successes), runs
+  with a different extraction backend, and logs written before the cache
+  format existed (cold cache);
+- a cached record that no longer satisfies the schema contract (e.g. the
+  contract was edited since) falls back to a fresh extraction instead of
+  raising on stale data;
+- `--force` (`python -m ai_syllabi_etl run --force`) bypasses the cache and
+  re-extracts every file — use it after improving the extraction prompt or
+  backend.
+
+The console reports `cache: N hit(s), M extracted fresh`; each log entry
+carries `cache: "hit"|"miss"` plus its stored `fields` and `backend`, so
+re-run cost is auditable. The dataset written by a fully-cached re-run is
+byte-identical to the original; the log differs only in cache provenance.
 
 ## Legacy pipeline stages (CSV input)
 
@@ -210,14 +234,14 @@ Colours use the **Okabe–Ito** colour-vision-deficiency-safe palette.
 ## Tests & CI
 
 ```bash
-python -m unittest discover -s tests -t .     # 54 tests, no network, no LLM needed
+python -m unittest discover -s tests -t .     # 124 tests, no network, no LLM needed
 ```
 
 `tests/` covers cleaning rules, the rule/mock/OpenAI-parsing backends,
-validation gates, and an end-to-end CLI run on a fixture (including the
-figure checklists). GitHub Actions runs the suite on Python 3.10–3.12,
-plus a full offline smoke run, and uploads the generated report as an
-artifact.
+validation gates, the extraction cache, and an end-to-end CLI run on a
+fixture (including the figure checklists). GitHub Actions runs the suite
+on Python 3.10–3.12, plus a full offline smoke run, and uploads the
+generated report as an artifact.
 
 ## Project layout
 
