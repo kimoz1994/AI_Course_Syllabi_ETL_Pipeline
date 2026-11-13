@@ -1,5 +1,25 @@
 # AGENTS.md — AI Course Syllabi ETL Pipeline
 
+## Hard rules (owner-mandated, 2026-11-13 — no exceptions)
+
+- **Never download or install anything the owner has not explicitly told you
+  to.** This covers pip packages, model weights, datasets, binaries, fonts,
+  anything fetched from the network onto the owner's machine. "It looked
+  lightweight" is not permission. Neither is a research ticket's mention of a
+  tool.
+- **Research-only tickets are read-only work:** read the web and files, write
+  findings into tickets/repo docs. No installs, no downloads, no smoke tests
+  that fetch or run anything new on the owner's machine. Any local testing is
+  a **separate decision the owner grants explicitly, per tool, per version.**
+- **Tool selection is the owner's decision.** Agents and subagents may present
+  options with evidence, trade-offs and estimates, and may *recommend* — but
+  must never act on a recommendation (choose, install, download, configure)
+  without the owner's explicit go.
+- **Subagents inherit these rules.** Every subagent prompt must restate them;
+  a subagent prompt that omits them is a prompt bug.
+- Violations are treated as incidents: stop the process, delete whatever was
+  downloaded/installed, report exactly what happened and the sizes.
+
 ## Project
 
 ETL pipeline for AI course syllabi: the **v1 PDF-only flow** ingests a
